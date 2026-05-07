@@ -15,15 +15,16 @@
             height: 100vh;
             font-family: 'Courier New', monospace;
             overflow: hidden;
+            cursor: none;
         }
         #gameContainer {
             position: relative;
             border: 3px solid #e94560;
             box-shadow: 0 0 30px #e94560aa;
         }
-        #gameCanvas {
-            display: block;
-        }
+        #gameCanvas { display: block; cursor: none; }
+
+        /* ── HUD ── */
         #ui {
             position: absolute;
             top: 0; left: 0; right: 0;
@@ -34,41 +35,54 @@
             z-index: 10;
         }
         .ui-panel {
-            background: rgba(0,0,0,0.65);
+            background: rgba(0,0,0,0.70);
             border: 1px solid #e9456088;
-            border-radius: 6px;
-            padding: 6px 14px;
+            border-radius: 8px;
+            padding: 7px 14px;
             color: #fff;
-            font-size: 14px;
-            min-width: 120px;
+            font-size: 13px;
+            min-width: 130px;
+            backdrop-filter: blur(4px);
         }
         .ui-panel span { color: #f5a623; font-weight: bold; }
         #weaponPanel { text-align: center; }
-        #ammoBar { margin-top: 4px; display: flex; gap: 3px; justify-content: center; }
+        #weaponIcon { font-size: 22px; margin-bottom: 2px; }
+        #ammoBar { margin-top: 5px; display: flex; gap: 2px; justify-content: center; flex-wrap: wrap; max-width: 160px; }
         .bullet-dot {
-            width: 8px; height: 14px;
+            width: 7px; height: 13px;
             background: #f5a623;
             border-radius: 2px;
             display: inline-block;
+            transition: background 0.15s;
         }
-        .bullet-dot.empty { background: #555; }
-        #healthBar {
-            width: 120px; height: 10px;
-            background: #333;
+        .bullet-dot.empty { background: #3a3a3a; }
+        #playerHpBar {
+            width: 130px; height: 10px;
+            background: #222;
             border-radius: 5px;
-            margin-top: 4px;
+            margin-top: 5px;
             overflow: hidden;
+            border: 1px solid #555;
         }
-        #healthFill {
+        #playerHpFill {
             height: 100%;
             background: linear-gradient(90deg, #e94560, #f5a623);
             border-radius: 5px;
-            transition: width 0.2s;
+            transition: width 0.15s;
         }
+        #reloadLabel {
+            font-size: 11px;
+            color: #f5a623;
+            margin-top: 3px;
+            min-height: 14px;
+            text-align: center;
+        }
+
+        /* ── OVERLAY ── */
         #overlay {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.82);
+            background: rgba(0,0,0,0.85);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -77,226 +91,236 @@
             color: #fff;
         }
         #overlay h1 {
-            font-size: 48px;
+            font-size: 52px;
             color: #e94560;
-            text-shadow: 0 0 20px #e94560;
-            margin-bottom: 10px;
-            letter-spacing: 4px;
+            text-shadow: 0 0 24px #e94560;
+            margin-bottom: 8px;
+            letter-spacing: 5px;
         }
-        #overlay h2 {
-            font-size: 22px;
-            color: #f5a623;
-            margin-bottom: 20px;
-        }
-        #overlay p {
-            font-size: 14px;
-            color: #aaa;
-            margin: 4px 0;
-            text-align: center;
-        }
-        #startBtn, #restartBtn {
+        #overlay h2 { font-size: 20px; color: #f5a623; margin-bottom: 22px; }
+        #overlay p  { font-size: 14px; color: #aaa; margin: 4px 0; text-align: center; }
+        .play-btn {
             margin-top: 28px;
-            padding: 14px 40px;
+            padding: 14px 44px;
             font-size: 20px;
             font-family: 'Courier New', monospace;
             background: #e94560;
             color: #fff;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
-            box-shadow: 0 0 20px #e94560aa;
+            box-shadow: 0 0 22px #e94560aa;
             letter-spacing: 2px;
             transition: background 0.2s, transform 0.1s;
         }
-        #startBtn:hover, #restartBtn:hover {
-            background: #c73250;
-            transform: scale(1.05);
-        }
-        #scoreDisplay {
-            font-size: 32px;
-            color: #f5a623;
-            margin: 10px 0;
-        }
-        #killNotif {
+        .play-btn:hover { background: #c73250; transform: scale(1.06); }
+        #scoreDisplay { font-size: 30px; color: #f5a623; margin: 10px 0; }
+
+        /* ── NOTIFICATIONS ── */
+        .notif {
             position: absolute;
-            top: 60px;
             left: 50%;
             transform: translateX(-50%);
-            color: #f5a623;
-            font-size: 18px;
+            font-size: 17px;
             font-weight: bold;
             pointer-events: none;
             opacity: 0;
             z-index: 20;
-            text-shadow: 0 0 10px #f5a623;
-            transition: opacity 0.3s;
             white-space: nowrap;
-        }
-        #weaponPickupNotif {
-            position: absolute;
-            top: 90px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: #7fff7f;
-            font-size: 16px;
-            font-weight: bold;
-            pointer-events: none;
-            opacity: 0;
-            z-index: 20;
-            text-shadow: 0 0 10px #7fff7f;
             transition: opacity 0.3s;
-            white-space: nowrap;
+            text-shadow: 0 2px 8px #000a;
         }
+        #killNotif   { top: 62px;  color: #f5a623; }
+        #pickupNotif { top: 90px;  color: #7fff7f; }
         #waveNotif {
             position: absolute;
-            top: 50%;
-            left: 50%;
+            top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             color: #fff;
-            font-size: 36px;
+            font-size: 40px;
             font-weight: bold;
             pointer-events: none;
             opacity: 0;
             z-index: 30;
-            text-shadow: 0 0 20px #e94560;
+            text-shadow: 0 0 24px #e94560;
             transition: opacity 0.4s;
+            white-space: nowrap;
         }
     </style>
 </head>
 <body>
 <div id="gameContainer">
     <canvas id="gameCanvas"></canvas>
+
+    <!-- HUD -->
     <div id="ui">
+        <!-- Left: Player HP -->
         <div class="ui-panel">
             ❤️ HP: <span id="hpText">100</span>
-            <div id="healthBar"><div id="healthFill" style="width:100%"></div></div>
+            <div id="playerHpBar"><div id="playerHpFill" style="width:100%"></div></div>
         </div>
+
+        <!-- Centre: Weapon -->
         <div class="ui-panel" id="weaponPanel">
-            🔫 <span id="weaponName">PISTOL</span>
+            <div id="weaponIcon">🔫</div>
+            <span id="weaponName">PISTOL</span>
             <div id="ammoBar"></div>
+            <div id="reloadLabel"></div>
         </div>
+
+        <!-- Right: Score -->
         <div class="ui-panel" style="text-align:right;">
             💀 Kills: <span id="killCount">0</span><br>
-            🌊 Wave: <span id="waveNum">1</span>
+            🌊 Wave: <span id="waveNum">1</span><br>
+            <span id="akStatus" style="font-size:11px;color:#ff6b35;"></span>
         </div>
     </div>
-    <div id="killNotif"></div>
-    <div id="weaponPickupNotif"></div>
+
+    <!-- Notifications -->
+    <div id="killNotif"   class="notif"></div>
+    <div id="pickupNotif" class="notif"></div>
     <div id="waveNotif"></div>
+
+    <!-- Start / Game-Over overlay -->
     <div id="overlay">
         <h1>MOUNTAIN SHOOTER</h1>
         <h2>Survive the waves!</h2>
         <p>🎮 WASD / Arrow Keys — Move</p>
-        <p>🖱️ Mouse — Aim & Shoot (Left Click)</p>
-        <p>🔄 R — Reload</p>
-        <p>🔫 Pistol: 12 shots | 💥 AK-47: 30 shots (rare drop!)</p>
-        <p>❤️ Walk over green packs to heal</p>
-        <button id="startBtn">▶ PLAY</button>
+        <p>🖱️ Mouse — Aim &amp; Shoot (Left Click)</p>
+        <p>🔄 R — Reload &nbsp;|&nbsp; 1 — Switch to Pistol</p>
+        <p>🔫 Start with <b>Pistol</b> (12 shots) &nbsp;|&nbsp; 💥 <b>AK-47</b> drops from enemies (~30% chance)</p>
+        <p>💊 Health packs spawn on the map — walk over them to heal</p>
+        <button class="play-btn" id="startBtn">▶ PLAY</button>
     </div>
 </div>
 
 <script>
-// ===================== SETUP =====================
+// ═══════════════════════════════════════════════
+//  SETUP
+// ═══════════════════════════════════════════════
 const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-
+const ctx    = canvas.getContext('2d');
 const W = 900, H = 600;
-canvas.width = W;
+canvas.width  = W;
 canvas.height = H;
-document.getElementById('gameContainer').style.width = W + 'px';
+document.getElementById('gameContainer').style.width  = W + 'px';
 document.getElementById('gameContainer').style.height = H + 'px';
 
-// ===================== STATE =====================
-let gameRunning = false;
-let kills = 0, wave = 1, waveEnemyCount = 5;
-let enemies = [], bullets = [], particles = [], pickups = [];
-let keys = {};
-let mouseX = W/2, mouseY = H/2;
-let animId;
-let lastTime = 0;
+const GROUND_Y = H - 60;
 
-// Mountain data (generated once)
-let mountainLayers = [];
-
-// ===================== WEAPONS =====================
+// ═══════════════════════════════════════════════
+//  WEAPONS
+// ═══════════════════════════════════════════════
 const WEAPONS = {
     pistol: {
-        name: 'PISTOL',
-        damage: 28,
-        fireRate: 400,
-        maxAmmo: 12,
-        reloadTime: 1200,
-        bulletSpeed: 12,
-        bulletColor: '#f5d442',
-        spread: 0.04,
-        auto: false,
+        name: 'PISTOL', icon: '🔫',
+        damage: 30, fireRate: 380, maxAmmo: 12,
+        reloadTime: 1100, bulletSpeed: 13,
+        bulletColor: '#ffe066', spread: 0.03, auto: false,
     },
     ak47: {
-        name: 'AK-47',
-        damage: 22,
-        fireRate: 110,
-        maxAmmo: 30,
-        reloadTime: 2000,
-        bulletSpeed: 15,
-        bulletColor: '#ff6b35',
-        spread: 0.10,
-        auto: true,
-    }
+        name: 'AK-47', icon: '💥',
+        damage: 22, fireRate: 105, maxAmmo: 30,
+        reloadTime: 1900, bulletSpeed: 16,
+        bulletColor: '#ff6b35', spread: 0.09, auto: true,
+    },
 };
 
-// ===================== PLAYER =====================
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let gameRunning = false;
+let kills = 0, wave = 1, waveEnemyCount = 5;
+let enemies = [], bullets = [], particles = [], pickups = [], dmgNumbers = [];
+let keys = {}, mouseX = W/2, mouseY = H/2, mouseDown = false;
+let animId, lastTime = 0;
+let screenShake = 0;
+let mountainLayers = [], MAP_TILES = [];
+
+// ═══════════════════════════════════════════════
+//  PLAYER
+// ═══════════════════════════════════════════════
 const player = {
-    x: W/2, y: H - 120,
+    x: W/2, y: GROUND_Y - 46,
     w: 28, h: 36,
     speed: 3.2,
-    hp: 100,
-    maxHp: 100,
-    weapon: 'pistol',
+    hp: 100, maxHp: 100,
+    weapon: 'pistol',      // ← ALWAYS starts as pistol
+    hasAk: false,
     ammo: 12,
-    reloading: false,
-    reloadTimer: 0,
+    reloading: false, reloadTimer: 0,
     lastShot: 0,
     angle: 0,
-    color: '#4fc3f7',
-    bodyColor: '#1565c0',
-    legColor: '#0d47a1',
     legAnim: 0,
 };
 
-// ===================== MAP =====================
-const GROUND_Y = H - 60;
-const MAP_TILES = [];
+// ═══════════════════════════════════════════════
+//  WAVE CONTROL
+// ═══════════════════════════════════════════════
+let waveSpawnTimer = 0, waveSpawnCount = 0, waveComplete = false;
 
-// Generate map obstacles
+function startWave(n) {
+    wave = n;
+    waveEnemyCount  = 5 + (n - 1) * 3;
+    waveSpawnCount  = 0;
+    waveSpawnTimer  = 0;
+    waveComplete    = false;
+    document.getElementById('waveNum').textContent = wave;
+    showWaveNotif(`⚔️  WAVE  ${wave}`);
+    // Spawn map health packs at wave start
+    spawnMapHealthPacks();
+}
+
+// ═══════════════════════════════════════════════
+//  MAP GENERATION
+// ═══════════════════════════════════════════════
 function generateMap() {
     MAP_TILES.length = 0;
-    // Some cover/rocks
     const rocks = [
-        {x:120, y:GROUND_Y-40, w:80, h:40},
-        {x:680, y:GROUND_Y-40, w:80, h:40},
-        {x:380, y:GROUND_Y-60, w:60, h:60},
-        {x:200, y:GROUND_Y-30, w:50, h:30},
-        {x:620, y:GROUND_Y-30, w:50, h:30},
-        {x:460, y:GROUND_Y-35, w:40, h:35},
+        {x:100, y:GROUND_Y-42, w:88,  h:42},
+        {x:680, y:GROUND_Y-42, w:88,  h:42},
+        {x:370, y:GROUND_Y-62, w:64,  h:62},
+        {x:210, y:GROUND_Y-30, w:54,  h:30},
+        {x:610, y:GROUND_Y-30, w:54,  h:30},
+        {x:460, y:GROUND_Y-36, w:44,  h:36},
     ];
     rocks.forEach(r => MAP_TILES.push(r));
 }
 
-// ===================== MOUNTAINS (background) =====================
+// Health packs on the map (fixed positions, refresh each wave)
+const HEALTHPACK_SPOTS = [
+    {x:50,  y:GROUND_Y-20},
+    {x:820, y:GROUND_Y-20},
+    {x:420, y:GROUND_Y-20},
+    {x:260, y:GROUND_Y-20},
+    {x:600, y:GROUND_Y-20},
+];
+function spawnMapHealthPacks() {
+    // Remove old health packs (keep AK drops)
+    pickups = pickups.filter(p => p.type === 'ak47');
+    // Spawn 2–3 health packs in random spots
+    const spots = [...HEALTHPACK_SPOTS].sort(() => Math.random() - 0.5).slice(0, 3);
+    spots.forEach(s => {
+        pickups.push({ x: s.x, y: s.y, type: 'health', w: 22, h: 22, life: 99999 });
+    });
+}
+
+// ═══════════════════════════════════════════════
+//  MOUNTAINS
+// ═══════════════════════════════════════════════
 function generateMountains() {
     mountainLayers = [];
-    // 3 layers: far, mid, near
     const layers = [
-        { count: 7, hMin: 140, hMax: 220, colorTop: '#2d3a4a', colorBase: '#1a2533', yBase: GROUND_Y - 10 },
-        { count: 9, hMin: 90, hMax: 160, colorTop: '#3b4f60', colorBase: '#243040', yBase: GROUND_Y },
-        { count: 11, hMin: 50, hMax: 100, colorTop: '#546e7a', colorBase: '#37474f', yBase: GROUND_Y + 5 },
+        { count: 7,  hMin:150, hMax:230, colorTop:'#1e2d3d', colorBase:'#111c28', yBase: GROUND_Y - 8  },
+        { count: 10, hMin: 95, hMax:165, colorTop:'#2e4055', colorBase:'#1b2d40', yBase: GROUND_Y      },
+        { count: 13, hMin: 50, hMax:110, colorTop:'#455f72', colorBase:'#2e424f', yBase: GROUND_Y + 4  },
     ];
     layers.forEach(layer => {
-        let peaks = [];
+        const peaks = [];
         const stepX = W / (layer.count - 1);
         for (let i = 0; i < layer.count; i++) {
             peaks.push({
-                x: i * stepX + (Math.random() - 0.5) * stepX * 0.5,
+                x: i * stepX + (Math.random() - 0.5) * stepX * 0.45,
                 h: layer.hMin + Math.random() * (layer.hMax - layer.hMin),
             });
         }
@@ -304,49 +328,40 @@ function generateMountains() {
     });
 }
 
-// ===================== ENEMIES =====================
+// ═══════════════════════════════════════════════
+//  ENEMIES
+// ═══════════════════════════════════════════════
 function spawnEnemy() {
-    const side = Math.random() < 0.5 ? 'left' : 'right';
-    const x = side === 'left' ? -30 : W + 30;
-    const y = GROUND_Y - 36;
-    const isElite = wave > 2 && Math.random() < 0.2;
+    const side    = Math.random() < 0.5 ? 'left' : 'right';
+    const x       = side === 'left' ? -32 : W + 32;
+    const isElite = wave > 2 && Math.random() < 0.22;
+    const baseHp  = isElite ? 120 + wave * 8 : 45 + wave * 6;
     enemies.push({
-        x, y,
+        x, y: GROUND_Y - 36,
         w: 26, h: 36,
-        speed: 1.1 + Math.random() * 0.6 + wave * 0.08,
-        hp: isElite ? 90 : 40 + wave * 5,
-        maxHp: isElite ? 90 : 40 + wave * 5,
-        color: isElite ? '#e91e63' : '#66bb6a',
+        speed: 1.0 + Math.random() * 0.5 + wave * 0.07,
+        hp: baseHp, maxHp: baseHp,
+        color:     isElite ? '#f48fb1' : '#81c784',
         bodyColor: isElite ? '#880e4f' : '#2e7d32',
-        damage: isElite ? 18 : 10,
-        attackRate: isElite ? 600 : 900,
+        damage: isElite ? 16 : 10,
+        attackRate: isElite ? 650 : 950,
         lastAttack: 0,
-        angle: 0,
-        legAnim: 0,
+        angle: 0, legAnim: 0,
         alive: true,
-        shootCooldown: 1500 + Math.random() * 1000,
+        shootCooldown: 1400 + Math.random() * 900,
         lastEnemyShot: 0,
         elite: isElite,
+        // hit-flash
+        hitFlash: 0,
     });
 }
 
-let waveSpawnTimer = 0;
-let waveSpawnCount = 0;
-
-function startWave(n) {
-    wave = n;
-    waveEnemyCount = 5 + (n - 1) * 3;
-    waveSpawnCount = 0;
-    waveSpawnTimer = 0;
-    document.getElementById('waveNum').textContent = wave;
-    showWaveNotif(`WAVE ${wave}`);
-}
-
-// ===================== BULLETS =====================
+// ═══════════════════════════════════════════════
+//  BULLETS
+// ═══════════════════════════════════════════════
 function fireBullet(fromPlayer, x, y, angle, wepKey) {
     const w = WEAPONS[wepKey];
-    const spread = (Math.random() - 0.5) * w.spread;
-    const a = angle + spread;
+    const a = angle + (Math.random() - 0.5) * w.spread;
     bullets.push({
         x, y,
         vx: Math.cos(a) * w.bulletSpeed,
@@ -354,21 +369,24 @@ function fireBullet(fromPlayer, x, y, angle, wepKey) {
         damage: w.damage,
         fromPlayer,
         color: w.bulletColor,
-        life: 80,
+        life: 85,
         r: fromPlayer ? 4 : 3,
+        trail: [],
     });
 }
 
-// ===================== PARTICLES =====================
-function spawnParticles(x, y, color, count=8) {
+// ═══════════════════════════════════════════════
+//  PARTICLES & DAMAGE NUMBERS
+// ═══════════════════════════════════════════════
+function spawnParticles(x, y, color, count = 8) {
     for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = 1 + Math.random() * 4;
+        const a = Math.random() * Math.PI * 2;
+        const s = 1 + Math.random() * 4;
         particles.push({
             x, y,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed - 2,
-            life: 30 + Math.random() * 20,
+            vx: Math.cos(a) * s,
+            vy: Math.sin(a) * s - 2,
+            life: 28 + Math.random() * 22,
             maxLife: 50,
             r: 2 + Math.random() * 3,
             color,
@@ -376,189 +394,202 @@ function spawnParticles(x, y, color, count=8) {
     }
 }
 
-// ===================== PICKUPS =====================
-function spawnPickup(x, y) {
-    // 40% chance AK47 drop, 60% health pack
-    const roll = Math.random();
-    if (roll < 0.40) {
-        pickups.push({ x, y: y - 10, type: 'ak47', w: 30, h: 14, life: 600 });
-    } else {
-        pickups.push({ x, y: y - 10, type: 'health', w: 20, h: 20, life: 600 });
+function spawnDmgNumber(x, y, dmg, color = '#fff') {
+    dmgNumbers.push({ x, y, vy: -1.6, dmg: Math.round(dmg), life: 55, maxLife: 55, color });
+}
+
+// ═══════════════════════════════════════════════
+//  PICKUPS  — enemy drops only AK47 (≈30%)
+// ═══════════════════════════════════════════════
+function tryDropAk47(x, y) {
+    if (Math.random() < 0.30) {
+        pickups.push({ x, y: y - 12, type: 'ak47', w: 32, h: 16, life: 720 });
     }
 }
 
-// ===================== COLLISION =====================
+// ═══════════════════════════════════════════════
+//  COLLISION HELPERS
+// ═══════════════════════════════════════════════
 function rectOverlap(ax,ay,aw,ah, bx,by,bw,bh) {
     return ax < bx+bw && ax+aw > bx && ay < by+bh && ay+ah > by;
 }
 function circleRect(cx,cy,cr, rx,ry,rw,rh) {
-    const nearX = Math.max(rx, Math.min(cx, rx+rw));
-    const nearY = Math.max(ry, Math.min(cy, ry+rh));
-    const dx = cx - nearX, dy = cy - nearY;
+    const nx = Math.max(rx, Math.min(cx, rx+rw));
+    const ny = Math.max(ry, Math.min(cy, ry+rh));
+    const dx = cx-nx, dy = cy-ny;
     return dx*dx + dy*dy < cr*cr;
 }
-
-function collidesWithObstacle(x, y, w, h) {
-    for (const tile of MAP_TILES) {
-        if (rectOverlap(x, y, w, h, tile.x, tile.y, tile.w, tile.h)) return tile;
-    }
+function collidesObstacle(x,y,w,h) {
+    for (const t of MAP_TILES) if (rectOverlap(x,y,w,h,t.x,t.y,t.w,t.h)) return t;
     return null;
 }
 
-// ===================== DRAWING =====================
-function drawMountains() {
-    mountainLayers.forEach(layer => {
-        ctx.beginPath();
-        ctx.moveTo(0, layer.yBase);
-        layer.peaks.forEach(p => {
-            ctx.lineTo(p.x, layer.yBase - p.h);
-        });
-        ctx.lineTo(W, layer.yBase);
-        ctx.closePath();
-        const grad = ctx.createLinearGradient(0, layer.yBase - 200, 0, layer.yBase);
-        grad.addColorStop(0, layer.colorTop);
-        grad.addColorStop(1, layer.colorBase);
-        ctx.fillStyle = grad;
-        ctx.fill();
-    });
-}
-
+// ═══════════════════════════════════════════════
+//  DRAW — SKY / STARS / MOUNTAINS / GROUND
+// ═══════════════════════════════════════════════
 function drawSky() {
-    const grad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-    grad.addColorStop(0, '#0a0f2c');
-    grad.addColorStop(0.5, '#1a2a4a');
-    grad.addColorStop(1, '#2d4060');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, GROUND_Y);
+    const g = ctx.createLinearGradient(0,0,0,GROUND_Y);
+    g.addColorStop(0,   '#07091e');
+    g.addColorStop(0.5, '#0f1e38');
+    g.addColorStop(1,   '#1a3050');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,W,GROUND_Y);
 }
-
 function drawStars() {
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    // Use seeded positions
-    for (let i = 0; i < 80; i++) {
-        const sx = ((i * 137 + 23) % W);
-        const sy = ((i * 97 + 11) % (GROUND_Y * 0.7));
-        const sr = ((i * 7) % 3) === 0 ? 1.5 : 0.8;
+    ctx.save();
+    for (let i = 0; i < 100; i++) {
+        const sx = (i * 137 + 23) % W;
+        const sy = (i *  97 + 11) % (GROUND_Y * 0.65);
+        const sr = (i * 7 % 4) === 0 ? 1.6 : 0.8;
+        const twinkle = 0.5 + 0.5 * Math.sin(Date.now() / 800 + i);
+        ctx.globalAlpha = 0.4 + 0.5 * twinkle;
+        ctx.fillStyle = '#fff';
         ctx.beginPath();
         ctx.arc(sx, sy, sr, 0, Math.PI*2);
         ctx.fill();
     }
+    ctx.globalAlpha = 1;
+    ctx.restore();
 }
-
+function drawMountains() {
+    mountainLayers.forEach(layer => {
+        ctx.beginPath();
+        ctx.moveTo(0, layer.yBase);
+        layer.peaks.forEach(p => ctx.lineTo(p.x, layer.yBase - p.h));
+        ctx.lineTo(W, layer.yBase);
+        ctx.closePath();
+        const g = ctx.createLinearGradient(0, layer.yBase - 220, 0, layer.yBase);
+        g.addColorStop(0, layer.colorTop);
+        g.addColorStop(1, layer.colorBase);
+        // Snow caps on tallest peaks
+        ctx.fillStyle = g;
+        ctx.fill();
+    });
+    // Snow caps
+    const farLayer = mountainLayers[0];
+    if (farLayer) {
+        farLayer.peaks.forEach(p => {
+            if (p.h > 180) {
+                const capH = (p.h - 180) * 0.4 + 20;
+                ctx.save();
+                ctx.fillStyle = 'rgba(220,235,255,0.55)';
+                ctx.beginPath();
+                ctx.moveTo(p.x, farLayer.yBase - p.h);
+                ctx.lineTo(p.x - capH * 0.6, farLayer.yBase - p.h + capH);
+                ctx.lineTo(p.x + capH * 0.6, farLayer.yBase - p.h + capH);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+        });
+    }
+}
 function drawGround() {
-    // Ground gradient
-    const grad = ctx.createLinearGradient(0, GROUND_Y, 0, H);
-    grad.addColorStop(0, '#3d5a3e');
-    grad.addColorStop(0.3, '#2e4430');
-    grad.addColorStop(1, '#1a2a1c');
-    ctx.fillStyle = grad;
+    const g = ctx.createLinearGradient(0, GROUND_Y, 0, H);
+    g.addColorStop(0,   '#3d5a3e');
+    g.addColorStop(0.3, '#2e4430');
+    g.addColorStop(1,   '#1a2a1c');
+    ctx.fillStyle = g;
     ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
-
-    // Ground line
     ctx.strokeStyle = '#5a8a5c';
     ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(0, GROUND_Y);
-    ctx.lineTo(W, GROUND_Y);
-    ctx.stroke();
-
+    ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(W, GROUND_Y); ctx.stroke();
     // Grass tufts
     ctx.strokeStyle = '#4caf50';
     ctx.lineWidth = 1.5;
-    for (let i = 0; i < W; i += 18) {
-        const h2 = 4 + ((i * 7) % 7);
+    for (let i = 0; i < W; i += 16) {
+        const gh = 4 + ((i * 7) % 7);
         ctx.beginPath();
-        ctx.moveTo(i, GROUND_Y);
-        ctx.lineTo(i - 3, GROUND_Y - h2);
-        ctx.moveTo(i, GROUND_Y);
-        ctx.lineTo(i + 3, GROUND_Y - h2);
+        ctx.moveTo(i, GROUND_Y); ctx.lineTo(i - 3, GROUND_Y - gh);
+        ctx.moveTo(i, GROUND_Y); ctx.lineTo(i + 3, GROUND_Y - gh);
         ctx.stroke();
     }
 }
-
 function drawObstacles() {
-    MAP_TILES.forEach(tile => {
-        // Rock shape
+    MAP_TILES.forEach(t => {
         ctx.save();
-        const grad = ctx.createLinearGradient(tile.x, tile.y, tile.x, tile.y + tile.h);
-        grad.addColorStop(0, '#78909c');
-        grad.addColorStop(1, '#455a64');
-        ctx.fillStyle = grad;
+        const g = ctx.createLinearGradient(t.x, t.y, t.x, t.y + t.h);
+        g.addColorStop(0, '#78909c');
+        g.addColorStop(1, '#455a64');
+        ctx.fillStyle = g;
         ctx.beginPath();
-        ctx.roundRect(tile.x, tile.y, tile.w, tile.h, [10, 10, 4, 4]);
+        ctx.roundRect(t.x, t.y, t.w, t.h, [10,10,4,4]);
         ctx.fill();
-        ctx.strokeStyle = '#546e7a';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        // Highlight
-        ctx.fillStyle = 'rgba(255,255,255,0.12)';
+        ctx.strokeStyle = '#546e7a'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,0.10)';
         ctx.beginPath();
-        ctx.roundRect(tile.x + 5, tile.y + 4, tile.w - 20, 6, 3);
+        ctx.roundRect(t.x + 5, t.y + 4, t.w - 22, 6, 3);
         ctx.fill();
         ctx.restore();
     });
 }
 
-function drawPerson(x, y, w, h, angle, color, bodyColor, legColor, legAnim, label, hp, maxHp, isElite) {
+// ═══════════════════════════════════════════════
+//  DRAW — PERSON (player + enemies share this)
+// ═══════════════════════════════════════════════
+function drawPerson(e, isPlayer) {
+    const { x, y, w, h, angle, color, bodyColor, legAnim, elite } = e;
+    const wepKey = isPlayer ? player.weapon : 'pistol';
+
     ctx.save();
     ctx.translate(x + w/2, y + h/2);
-    ctx.rotate(0); // body doesn't rotate, only gun
 
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    // Hit flash overlay
+    if (!isPlayer && e.hitFlash > 0) {
+        ctx.save();
+        ctx.globalAlpha = e.hitFlash / 8;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.roundRect(-w/2 - 2, -h/2 - 2, w + 4, h + 4, 6);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    // Ground shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
     ctx.beginPath();
-    ctx.ellipse(0, h/2 + 4, w/2 + 2, 5, 0, 0, Math.PI*2);
+    ctx.ellipse(0, h/2 + 4, w/2 + 3, 5, 0, 0, Math.PI*2);
     ctx.fill();
 
     // Legs
     const legOff = Math.sin(legAnim) * 6;
-    ctx.fillStyle = legColor;
-    // Left leg
-    ctx.beginPath();
-    ctx.roundRect(-w/2 + 2, h/4, 9, h/3 + legOff, 3);
-    ctx.fill();
-    // Right leg
-    ctx.beginPath();
-    ctx.roundRect(w/2 - 11, h/4, 9, h/3 - legOff, 3);
-    ctx.fill();
+    ctx.fillStyle = isPlayer ? '#0d47a1' : (elite ? '#6a1040' : '#1b5e20');
+    ctx.beginPath(); ctx.roundRect(-w/2 + 2, h/4,      9, h/3 + legOff, 3); ctx.fill();
+    ctx.beginPath(); ctx.roundRect( w/2 -11,  h/4,      9, h/3 - legOff, 3); ctx.fill();
 
     // Body
-    const bodyGrad = ctx.createLinearGradient(-w/2, -h/4, w/2, h/4);
-    bodyGrad.addColorStop(0, bodyColor);
-    bodyGrad.addColorStop(1, color);
-    ctx.fillStyle = bodyGrad;
-    ctx.beginPath();
-    ctx.roundRect(-w/2, -h/3, w, h * 0.65, 5);
-    ctx.fill();
+    const bg = ctx.createLinearGradient(-w/2, -h/4, w/2, h/4);
+    bg.addColorStop(0, bodyColor);
+    bg.addColorStop(1, color);
+    ctx.fillStyle = bg;
+    ctx.beginPath(); ctx.roundRect(-w/2, -h/3, w, h * 0.65, 5); ctx.fill();
 
-    // Elite glow
-    if (isElite) {
-        ctx.strokeStyle = '#f06292';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.roundRect(-w/2, -h/3, w, h * 0.65, 5);
-        ctx.stroke();
+    // Elite glow ring
+    if (elite) {
+        ctx.strokeStyle = '#f06292'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.roundRect(-w/2, -h/3, w, h * 0.65, 5); ctx.stroke();
     }
 
     // Head
     ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(0, -h/3 - 10, 10, 0, Math.PI*2);
-    ctx.fill();
-    ctx.strokeStyle = bodyColor;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, -h/3 - 10, 10, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = bodyColor; ctx.lineWidth = 1.5; ctx.stroke();
 
     // Eyes
-    const eyeDir = Math.cos(angle) > 0 ? 1 : -1;
+    const eyeDir = Math.cos(angle) >= 0 ? 1 : -1;
     ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(eyeDir * 3, -h/3 - 11, 3, 0, Math.PI*2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(eyeDir * 3, -h/3 - 11, 3, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = '#111';
-    ctx.beginPath();
-    ctx.arc(eyeDir * 3 + eyeDir * 1, -h/3 - 11, 1.5, 0, Math.PI*2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(eyeDir * 3 + eyeDir, -h/3 - 11, 1.5, 0, Math.PI*2); ctx.fill();
+
+    // Helmet (player only)
+    if (isPlayer) {
+        ctx.fillStyle = '#1565c0';
+        ctx.beginPath();
+        ctx.arc(0, -h/3 - 10, 10, Math.PI, 0);
+        ctx.rect(-10, -h/3 - 14, 20, 6);
+        ctx.fill();
+    }
 
     // Arm + Gun
     ctx.save();
@@ -566,232 +597,292 @@ function drawPerson(x, y, w, h, angle, color, bodyColor, legColor, legAnim, labe
     ctx.rotate(angle);
     // Arm
     ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.roundRect(0, -3, 14, 6, 3);
-    ctx.fill();
-    // Gun body
-    if (label === 'ak47') {
-        // AK-47 - longer, chunkier
+    ctx.beginPath(); ctx.roundRect(0, -3, 14, 6, 3); ctx.fill();
+
+    if (wepKey === 'ak47') {
+        // AK-47
         ctx.fillStyle = '#5d4037';
-        ctx.beginPath();
-        ctx.roundRect(10, -4, 22, 8, 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.roundRect(10, -4, 24, 9, 2); ctx.fill();
         ctx.fillStyle = '#3e2723';
-        ctx.beginPath();
-        ctx.roundRect(10, -6, 18, 3, 1);
-        ctx.fill();
-        // Magazine
-        ctx.fillStyle = '#4e342e';
-        ctx.beginPath();
-        ctx.roundRect(16, 4, 7, 9, 2);
-        ctx.fill();
-        // Barrel
-        ctx.fillStyle = '#37474f';
-        ctx.beginPath();
-        ctx.roundRect(32, -2, 10, 4, 1);
-        ctx.fill();
-        // Muzzle flash hint
+        ctx.beginPath(); ctx.roundRect(10, -7, 20, 4, 1); ctx.fill();
+        ctx.fillStyle = '#4e342e'; // magazine
+        ctx.beginPath(); ctx.roundRect(17, 5, 8, 10, 2); ctx.fill();
+        ctx.fillStyle = '#37474f'; // barrel
+        ctx.beginPath(); ctx.roundRect(34, -2, 12, 5, 1); ctx.fill();
         ctx.fillStyle = '#ffd54f';
-        ctx.beginPath();
-        ctx.arc(42, 0, 2, 0, Math.PI*2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(46, 0, 2.5, 0, Math.PI*2); ctx.fill();
     } else {
         // Pistol
         ctx.fillStyle = '#37474f';
-        ctx.beginPath();
-        ctx.roundRect(10, -4, 16, 8, 3);
-        ctx.fill();
-        // Grip
-        ctx.fillStyle = '#263238';
-        ctx.beginPath();
-        ctx.roundRect(12, 4, 8, 8, 2);
-        ctx.fill();
-        // Barrel
-        ctx.fillStyle = '#546e7a';
-        ctx.beginPath();
-        ctx.roundRect(24, -2, 8, 4, 1);
-        ctx.fill();
+        ctx.beginPath(); ctx.roundRect(10, -4, 17, 9, 3); ctx.fill();
+        ctx.fillStyle = '#263238'; // grip
+        ctx.beginPath(); ctx.roundRect(12, 5, 9, 9, 2); ctx.fill();
+        ctx.fillStyle = '#546e7a'; // barrel
+        ctx.beginPath(); ctx.roundRect(26, -2, 9, 5, 1); ctx.fill();
     }
-    ctx.restore();
+    ctx.restore(); // gun
 
-    // HP bar (for enemies)
-    if (maxHp && hp < maxHp) {
-        const bw = w + 6;
-        const bx = -bw/2;
-        const by = -h/2 - 14;
-        ctx.fillStyle = '#333';
-        ctx.fillRect(bx, by, bw, 5);
-        ctx.fillStyle = hp > maxHp * 0.5 ? '#4caf50' : hp > maxHp * 0.25 ? '#ff9800' : '#f44336';
-        ctx.fillRect(bx, by, bw * (hp/maxHp), 5);
+    // ── ENEMY HEALTH BAR (always visible) ──
+    if (!isPlayer) {
+        const barW  = w + 14;
+        const barX  = -barW / 2;
+        const barY  = -h / 2 - 22;
+        const barH  = 7;
+        const pct   = Math.max(0, e.hp / e.maxHp);
+        const barColor = pct > 0.55 ? '#4caf50' : pct > 0.28 ? '#ff9800' : '#f44336';
+
+        // Background track
+        ctx.fillStyle = '#111';
+        ctx.beginPath(); ctx.roundRect(barX - 1, barY - 1, barW + 2, barH + 2, 4); ctx.fill();
+
+        // Depleted (dark red)
+        ctx.fillStyle = '#3a0000';
+        ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 3); ctx.fill();
+
+        // Filled portion
+        ctx.fillStyle = barColor;
+        ctx.beginPath(); ctx.roundRect(barX, barY, barW * pct, barH, 3); ctx.fill();
+
+        // Shine
+        ctx.fillStyle = 'rgba(255,255,255,0.18)';
+        ctx.beginPath(); ctx.roundRect(barX, barY, barW * pct, barH * 0.45, [3,3,0,0]); ctx.fill();
+
+        // HP text
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 8px Courier New';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${Math.ceil(e.hp)}/${e.maxHp}`, 0, barY - 2);
+
+        // Elite skull icon
+        if (elite) {
+            ctx.fillStyle = '#f06292';
+            ctx.font = '10px serif';
+            ctx.fillText('💀', barX - 10, barY + barH - 1);
+        }
     }
 
     ctx.restore();
 }
 
+// ═══════════════════════════════════════════════
+//  DRAW — PICKUPS
+// ═══════════════════════════════════════════════
 function drawPickup(p) {
+    const bob = Math.sin(Date.now() / 300 + p.x) * 3;
     ctx.save();
-    ctx.translate(p.x, p.y);
-    // Floating bob
-    const bob = Math.sin(Date.now() / 300) * 3;
-    ctx.translate(0, bob);
+    ctx.translate(p.x, p.y + bob);
+    ctx.shadowBlur = 16;
 
-    // Glow
-    ctx.shadowBlur = 14;
     if (p.type === 'ak47') {
         ctx.shadowColor = '#ff6b35';
-        // AK47 crate
-        ctx.fillStyle = '#5d4037';
-        ctx.beginPath();
-        ctx.roundRect(-15, -7, 30, 14, 3);
-        ctx.fill();
-        ctx.fillStyle = '#ff6b35';
+        // Crate body
+        ctx.fillStyle = '#4e342e';
+        ctx.beginPath(); ctx.roundRect(-18, -10, 36, 20, 4); ctx.fill();
+        // Stripes
+        ctx.strokeStyle = '#ff6b35'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.roundRect(-18, -10, 36, 20, 4); ctx.stroke();
+        // Label
+        ctx.fillStyle = '#ffcc80';
         ctx.font = 'bold 9px Courier New';
         ctx.textAlign = 'center';
-        ctx.fillText('AK-47', 0, 3);
-        // Glow border
-        ctx.strokeStyle = '#ff6b35';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.roundRect(-15, -7, 30, 14, 3);
-        ctx.stroke();
+        ctx.fillText('AK-47', 0, 4);
+        // Timer bar (fade out)
+        if (p.life < 300) {
+            const pct = p.life / 300;
+            ctx.fillStyle = `rgba(255,107,53,${0.7 * pct})`;
+            ctx.fillRect(-16, 12, 32 * pct, 3);
+        }
     } else {
-        ctx.shadowColor = '#4caf50';
         // Health pack
-        ctx.fillStyle = '#388e3c';
-        ctx.beginPath();
-        ctx.roundRect(-10, -10, 20, 20, 3);
-        ctx.fill();
+        ctx.shadowColor = '#4caf50';
+        ctx.fillStyle = '#2e7d32';
+        ctx.beginPath(); ctx.roundRect(-12, -12, 24, 24, 4); ctx.fill();
+        ctx.strokeStyle = '#81c784'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.roundRect(-12, -12, 24, 24, 4); ctx.stroke();
+        // Cross
         ctx.fillStyle = '#fff';
-        ctx.fillRect(-2, -7, 4, 14);
-        ctx.fillRect(-7, -2, 14, 4);
-        ctx.strokeStyle = '#66bb6a';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.roundRect(-10, -10, 20, 20, 3);
-        ctx.stroke();
+        ctx.fillRect(-2.5, -9, 5, 18);
+        ctx.fillRect(-9,  -2.5, 18, 5);
+        // Shine
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.beginPath(); ctx.roundRect(-12, -12, 24, 6, [4,4,0,0]); ctx.fill();
     }
     ctx.shadowBlur = 0;
     ctx.restore();
 }
 
+// ═══════════════════════════════════════════════
+//  DRAW — BULLET
+// ═══════════════════════════════════════════════
 function drawBullet(b) {
     ctx.save();
+    // Trail
+    if (b.trail.length > 1) {
+        ctx.strokeStyle = b.color + '55';
+        ctx.lineWidth = b.r;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(b.trail[0].x, b.trail[0].y);
+        b.trail.forEach(t => ctx.lineTo(t.x, t.y));
+        ctx.stroke();
+    }
+    ctx.shadowBlur = 10; ctx.shadowColor = b.color;
     ctx.fillStyle = b.color;
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = b.color;
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill();
     ctx.shadowBlur = 0;
     ctx.restore();
 }
 
-function drawParticle(p) {
-    const alpha = p.life / p.maxLife;
+// ═══════════════════════════════════════════════
+//  DRAW — CUSTOM CROSSHAIR
+// ═══════════════════════════════════════════════
+function drawCrosshair() {
+    const spread = player.weapon === 'ak47' ? 14 : 8;
+    const r = spread;
     ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = p.color;
+    ctx.translate(mouseX, mouseY);
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.lineWidth = 1.5;
+    ctx.shadowBlur = 4; ctx.shadowColor = '#000';
+    // Lines
+    const gap = 4;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, p.r * alpha, 0, Math.PI*2);
-    ctx.fill();
+    ctx.moveTo(-r - gap, 0); ctx.lineTo(-gap, 0);
+    ctx.moveTo( gap, 0);     ctx.lineTo( r + gap, 0);
+    ctx.moveTo(0, -r - gap); ctx.lineTo(0, -gap);
+    ctx.moveTo(0,  gap);     ctx.lineTo(0,  r + gap);
+    ctx.stroke();
+    // Centre dot
+    ctx.fillStyle = '#e94560';
+    ctx.beginPath(); ctx.arc(0, 0, 2, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
     ctx.restore();
 }
 
-function drawAmmoBar() {
-    const w = WEAPONS[player.weapon];
+// ═══════════════════════════════════════════════
+//  DRAW — DAMAGE NUMBERS
+// ═══════════════════════════════════════════════
+function drawDmgNumbers() {
+    dmgNumbers.forEach(d => {
+        const alpha = d.life / d.maxLife;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = d.color;
+        ctx.font = `bold ${11 + Math.round((1-alpha)*4)}px Courier New`;
+        ctx.textAlign = 'center';
+        ctx.fillText(`-${d.dmg}`, d.x, d.y);
+        ctx.restore();
+    });
+}
+
+// ═══════════════════════════════════════════════
+//  HUD HELPERS
+// ═══════════════════════════════════════════════
+function updateHpBar() {
+    const pct = Math.max(0, player.hp) / player.maxHp * 100;
+    document.getElementById('hpText').textContent = Math.max(0, Math.floor(player.hp));
+    document.getElementById('playerHpFill').style.width = pct + '%';
+}
+function updateAmmoBar() {
+    const wep = WEAPONS[player.weapon];
+    document.getElementById('weaponName').textContent = wep.name;
+    document.getElementById('weaponIcon').textContent = wep.icon;
     const bar = document.getElementById('ammoBar');
     bar.innerHTML = '';
-    for (let i = 0; i < w.maxAmmo; i++) {
+    for (let i = 0; i < wep.maxAmmo; i++) {
         const d = document.createElement('div');
         d.className = 'bullet-dot' + (i < player.ammo ? '' : ' empty');
         bar.appendChild(d);
     }
 }
+function setReloadLabel(txt) {
+    document.getElementById('reloadLabel').textContent = txt;
+}
+function updateAkStatus() {
+    document.getElementById('akStatus').textContent =
+        player.hasAk ? '🟠 AK-47 in inventory' : '';
+}
 
-// ===================== NOTIFICATIONS =====================
+// ═══════════════════════════════════════════════
+//  NOTIFICATIONS
+// ═══════════════════════════════════════════════
+let killNotifTimer = null, pickupNotifTimer = null;
 function showKillNotif(msg) {
     const el = document.getElementById('killNotif');
-    el.textContent = msg;
-    el.style.opacity = '1';
-    setTimeout(() => el.style.opacity = '0', 1200);
+    el.textContent = msg; el.style.opacity = '1';
+    clearTimeout(killNotifTimer);
+    killNotifTimer = setTimeout(() => el.style.opacity = '0', 1300);
 }
-function showWeaponPickupNotif(msg) {
-    const el = document.getElementById('weaponPickupNotif');
-    el.textContent = msg;
-    el.style.opacity = '1';
-    setTimeout(() => el.style.opacity = '0', 1800);
+function showPickupNotif(msg) {
+    const el = document.getElementById('pickupNotif');
+    el.textContent = msg; el.style.opacity = '1';
+    clearTimeout(pickupNotifTimer);
+    pickupNotifTimer = setTimeout(() => el.style.opacity = '0', 1800);
 }
 function showWaveNotif(msg) {
     const el = document.getElementById('waveNotif');
-    el.textContent = msg;
-    el.style.opacity = '1';
-    setTimeout(() => { el.style.opacity = '0'; }, 2000);
+    el.textContent = msg; el.style.opacity = '1';
+    setTimeout(() => el.style.opacity = '0', 2200);
 }
 
-// ===================== RELOAD =====================
+// ═══════════════════════════════════════════════
+//  RELOAD
+// ═══════════════════════════════════════════════
 function startReload() {
     if (player.reloading) return;
-    const w = WEAPONS[player.weapon];
-    if (player.ammo === w.maxAmmo) return;
-    player.reloading = true;
-    player.reloadTimer = w.reloadTime;
-    showWeaponPickupNotif('🔄 Reloading...');
+    const wep = WEAPONS[player.weapon];
+    if (player.ammo === wep.maxAmmo) return;
+    player.reloading   = true;
+    player.reloadTimer = wep.reloadTime;
+    setReloadLabel('🔄 Reloading…');
 }
 
-// ===================== SHOOTING =====================
+// ═══════════════════════════════════════════════
+//  SHOOT
+// ═══════════════════════════════════════════════
 function tryShoot(now) {
     if (player.reloading) return;
-    const w = WEAPONS[player.weapon];
-    if (now - player.lastShot < w.fireRate) return;
+    const wep = WEAPONS[player.weapon];
+    if (now - player.lastShot < wep.fireRate) return;
     if (player.ammo <= 0) { startReload(); return; }
     player.lastShot = now;
     player.ammo--;
     const cx = player.x + player.w/2;
     const cy = player.y + player.h/2;
     fireBullet(true, cx, cy, player.angle, player.weapon);
-    drawAmmoBar();
-    // Muzzle flash particle
-    spawnParticles(
-        cx + Math.cos(player.angle) * 26,
-        cy + Math.sin(player.angle) * 26,
-        WEAPONS[player.weapon].bulletColor, 3
-    );
+    updateAmmoBar();
+    // Muzzle flash
+    spawnParticles(cx + Math.cos(player.angle)*28, cy + Math.sin(player.angle)*28,
+                   wep.bulletColor, 3);
+    if (player.ammo === 0) startReload();
 }
 
-// ===================== GAME LOOP =====================
-let mouseDown = false;
-
+// ═══════════════════════════════════════════════
+//  UPDATE
+// ═══════════════════════════════════════════════
 function update(dt, now) {
-    // Player movement
+    // ── Player movement ──
     let dx = 0, dy = 0;
-    if (keys['ArrowLeft'] || keys['a'] || keys['A']) dx -= 1;
+    if (keys['ArrowLeft']  || keys['a'] || keys['A']) dx -= 1;
     if (keys['ArrowRight'] || keys['d'] || keys['D']) dx += 1;
-    if (keys['ArrowUp'] || keys['w'] || keys['W']) dy -= 1;
-    if (keys['ArrowDown'] || keys['s'] || keys['S']) dy += 1;
-
-    if (dx !== 0 && dy !== 0) { dx *= 0.707; dy *= 0.707; }
+    if (keys['ArrowUp']    || keys['w'] || keys['W']) dy -= 1;
+    if (keys['ArrowDown']  || keys['s'] || keys['S']) dy += 1;
+    if (dx && dy) { dx *= 0.707; dy *= 0.707; }
 
     const nx = player.x + dx * player.speed;
     const ny = player.y + dy * player.speed;
+    const cx2 = Math.max(0, Math.min(W - player.w, nx));
+    const cy2 = Math.max(0, Math.min(GROUND_Y - player.h, ny));
+    if (!collidesObstacle(cx2, player.y, player.w, player.h)) player.x = cx2;
+    if (!collidesObstacle(player.x, cy2, player.w, player.h)) player.y = cy2;
+    if (dx || dy) player.legAnim += 0.18;
 
-    // Boundary + obstacle check
-    const clampX = Math.max(0, Math.min(W - player.w, nx));
-    const clampY = Math.max(0, Math.min(GROUND_Y - player.h, ny));
-    if (!collidesWithObstacle(clampX, player.y, player.w, player.h)) player.x = clampX;
-    if (!collidesWithObstacle(player.x, clampY, player.w, player.h)) player.y = clampY;
+    // Aim angle
+    player.angle = Math.atan2(mouseY - (player.y + player.h/2),
+                               mouseX - (player.x + player.w/2));
 
-    if (dx !== 0 || dy !== 0) player.legAnim += 0.18;
-
-    // Player angle to mouse
-    const cx = player.x + player.w/2;
-    const cy = player.y + player.h/2;
-    player.angle = Math.atan2(mouseY - cy, mouseX - cx);
-
-    // Auto-fire for AK47 or click for pistol
-    const w = WEAPONS[player.weapon];
-    if (mouseDown && (w.auto || !w.auto)) {
-        if (w.auto || mouseDown) tryShoot(now);
-    }
+    // Auto-fire
+    if (mouseDown) tryShoot(now);
 
     // Reload timer
     if (player.reloading) {
@@ -799,253 +890,296 @@ function update(dt, now) {
         if (player.reloadTimer <= 0) {
             player.reloading = false;
             player.ammo = WEAPONS[player.weapon].maxAmmo;
-            drawAmmoBar();
-            showWeaponPickupNotif('✅ Reloaded!');
+            updateAmmoBar();
+            setReloadLabel('');
+            showPickupNotif('✅ Reloaded!');
         }
     }
 
-    // Spawn enemies
+    // ── Spawn enemies ──
     if (waveSpawnCount < waveEnemyCount) {
         waveSpawnTimer -= dt;
         if (waveSpawnTimer <= 0) {
             spawnEnemy();
             waveSpawnCount++;
-            waveSpawnTimer = 600 + Math.random() * 800;
+            waveSpawnTimer = 550 + Math.random() * 750;
         }
     }
 
-    // Update enemies
-    enemies.forEach(e => {
-        if (!e.alive) return;
-        // Move toward player
-        const ex = e.x + e.w/2;
-        const ey = e.y + e.h/2;
-        const px = player.x + player.w/2;
-        const py = player.y + player.h/2;
+    // ── Update enemies ──
+    for (const e of enemies) {
+        if (!e.alive) continue;
+        if (e.hitFlash > 0) e.hitFlash--;
+
+        const ex = e.x + e.w/2, ey = e.y + e.h/2;
+        const px = player.x + player.w/2, py = player.y + player.h/2;
         const dist = Math.hypot(px - ex, py - ey);
         e.angle = Math.atan2(py - ey, px - ex);
 
-        if (dist > 60) {
-            const edx = Math.cos(e.angle) * e.speed;
-            const edy = Math.sin(e.angle) * e.speed;
-            const enx = e.x + edx;
-            const eny = e.y + edy;
-            if (!collidesWithObstacle(enx, e.y, e.w, e.h)) e.x = enx;
-            if (!collidesWithObstacle(e.x, eny, e.w, e.h)) e.y = eny;
-            // Clamp to ground
+        if (dist > 55) {
+            const evx = Math.cos(e.angle) * e.speed;
+            const evy = Math.sin(e.angle) * e.speed;
+            if (!collidesObstacle(e.x + evx, e.y,       e.w, e.h)) e.x += evx;
+            if (!collidesObstacle(e.x,       e.y + evy, e.w, e.h)) e.y += evy;
             e.y = Math.min(GROUND_Y - e.h, e.y);
             e.legAnim += 0.15;
         }
 
         // Enemy shoots
-        if (dist < 350 && now - e.lastEnemyShot > e.shootCooldown) {
+        if (dist < 360 && now - e.lastEnemyShot > e.shootCooldown) {
             e.lastEnemyShot = now;
             fireBullet(false, ex, ey, e.angle, 'pistol');
         }
 
-        // Melee attack
+        // Melee
         if (rectOverlap(player.x, player.y, player.w, player.h, e.x, e.y, e.w, e.h)) {
             if (now - e.lastAttack > e.attackRate) {
                 player.hp -= e.damage;
                 e.lastAttack = now;
-                spawnParticles(player.x + player.w/2, player.y + player.h/2, '#e94560', 5);
-                updateHPBar();
-                if (player.hp <= 0) { gameOver(); }
-            }
-        }
-    });
-
-    // Update bullets
-    for (let i = bullets.length - 1; i >= 0; i--) {
-        const b = bullets[i];
-        b.x += b.vx;
-        b.y += b.vy;
-        b.life--;
-
-        // Out of bounds or life
-        if (b.x < 0 || b.x > W || b.y < 0 || b.y > H || b.life <= 0) {
-            bullets.splice(i, 1);
-            continue;
-        }
-
-        // Hit obstacle
-        let hitObstacle = false;
-        for (const tile of MAP_TILES) {
-            if (circleRect(b.x, b.y, b.r, tile.x, tile.y, tile.w, tile.h)) {
-                spawnParticles(b.x, b.y, '#9e9e9e', 4);
-                bullets.splice(i, 1);
-                hitObstacle = true;
-                break;
-            }
-        }
-        if (hitObstacle) continue;
-
-        if (b.fromPlayer) {
-            // Hit enemies
-            let hit = false;
-            for (let j = enemies.length - 1; j >= 0; j--) {
-                const e = enemies[j];
-                if (!e.alive) continue;
-                if (circleRect(b.x, b.y, b.r, e.x, e.y, e.w, e.h)) {
-                    e.hp -= b.damage;
-                    spawnParticles(b.x, b.y, '#ef9a9a', 6);
-                    bullets.splice(i, 1);
-                    hit = true;
-                    if (e.hp <= 0) {
-                        e.alive = false;
-                        kills++;
-                        document.getElementById('killCount').textContent = kills;
-                        spawnParticles(e.x + e.w/2, e.y + e.h/2, e.elite ? '#f06292' : '#66bb6a', 14);
-                        showKillNotif(e.elite ? '💀 ELITE KILLED! +3' : '💀 KILL!');
-                        spawnPickup(e.x + e.w/2, e.y);
-                    }
-                    break;
-                }
-            }
-        } else {
-            // Hit player
-            if (circleRect(b.x, b.y, b.r, player.x, player.y, player.w, player.h)) {
-                player.hp -= b.damage;
-                spawnParticles(b.x, b.y, '#e94560', 5);
-                bullets.splice(i, 1);
-                updateHPBar();
+                screenShake = 8;
+                spawnParticles(player.x + player.w/2, player.y, '#e94560', 5);
+                updateHpBar();
                 if (player.hp <= 0) { gameOver(); return; }
             }
         }
     }
 
-    // Remove dead enemies
+    // ── Update bullets ──
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.trail.push({ x: b.x, y: b.y });
+        if (b.trail.length > 5) b.trail.shift();
+        b.x += b.vx; b.y += b.vy; b.life--;
+
+        if (b.x < 0 || b.x > W || b.y < 0 || b.y > H || b.life <= 0) {
+            bullets.splice(i, 1); continue;
+        }
+
+        // Hit obstacle
+        let hitWall = false;
+        for (const t of MAP_TILES) {
+            if (circleRect(b.x, b.y, b.r, t.x, t.y, t.w, t.h)) {
+                spawnParticles(b.x, b.y, '#9e9e9e', 4);
+                bullets.splice(i, 1); hitWall = true; break;
+            }
+        }
+        if (hitWall) continue;
+
+        if (b.fromPlayer) {
+            // Hit enemies
+            let hitE = false;
+            for (const e of enemies) {
+                if (!e.alive) continue;
+                if (circleRect(b.x, b.y, b.r, e.x, e.y, e.w, e.h)) {
+                    e.hp -= b.damage;
+                    e.hitFlash = 8;
+                    spawnParticles(b.x, b.y, '#ef9a9a', 5);
+                    spawnDmgNumber(e.x + e.w/2, e.y - 10, b.damage, '#fff');
+                    bullets.splice(i, 1); hitE = true;
+                    if (e.hp <= 0) {
+                        e.alive = false;
+                        kills++;
+                        document.getElementById('killCount').textContent = kills;
+                        spawnParticles(e.x + e.w/2, e.y + e.h/2,
+                                       e.elite ? '#f06292' : '#81c784', 16);
+                        showKillNotif(e.elite ? '💀 ELITE DOWN!' : '💀 KILL!');
+                        // ── Only AK-47 drops from enemies ──
+                        tryDropAk47(e.x + e.w/2, e.y);
+                    }
+                    break;
+                }
+            }
+            if (hitE) continue;
+        } else {
+            // Hit player
+            if (circleRect(b.x, b.y, b.r, player.x, player.y, player.w, player.h)) {
+                player.hp -= b.damage;
+                spawnParticles(b.x, b.y, '#e94560', 4);
+                screenShake = 6;
+                bullets.splice(i, 1);
+                updateHpBar();
+                if (player.hp <= 0) { gameOver(); return; }
+            }
+        }
+    }
+
+    // ── Clean dead enemies ──
     enemies = enemies.filter(e => e.alive);
 
-    // Update particles
+    // ── Particles ──
     for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.12;
-        p.life--;
+        p.x += p.vx; p.y += p.vy; p.vy += 0.13; p.life--;
         if (p.life <= 0) particles.splice(i, 1);
     }
 
-    // Update pickups
+    // ── Damage numbers ──
+    for (let i = dmgNumbers.length - 1; i >= 0; i--) {
+        const d = dmgNumbers[i];
+        d.x += (Math.random() - 0.5) * 0.5;
+        d.y += d.vy; d.vy *= 0.96; d.life--;
+        if (d.life <= 0) dmgNumbers.splice(i, 1);
+    }
+
+    // ── Pickups ──
     for (let i = pickups.length - 1; i >= 0; i--) {
         const p = pickups[i];
-        p.life--;
+        if (p.life !== 99999) p.life--;          // health packs on map don't expire
         if (p.life <= 0) { pickups.splice(i, 1); continue; }
-        // Player collects
-        if (rectOverlap(player.x, player.y, player.w, player.h, p.x - p.w/2, p.y - p.h/2, p.w, p.h)) {
+
+        if (rectOverlap(player.x, player.y, player.w, player.h,
+                        p.x - p.w/2, p.y - p.h/2, p.w, p.h)) {
             if (p.type === 'ak47') {
+                // Pick up AK-47
                 player.weapon = 'ak47';
-                player.ammo = WEAPONS.ak47.maxAmmo;
+                player.hasAk  = true;
+                player.ammo   = WEAPONS.ak47.maxAmmo;
                 player.reloading = false;
-                document.getElementById('weaponName').textContent = 'AK-47';
-                drawAmmoBar();
-                showWeaponPickupNotif('🔥 AK-47 PICKED UP!');
+                setReloadLabel('');
+                updateAmmoBar();
+                updateAkStatus();
+                showPickupNotif('🔥 AK-47 PICKED UP!');
             } else {
-                const healed = Math.min(40, player.maxHp - player.hp);
+                // Health pack
+                const gain = Math.min(40, player.maxHp - player.hp);
                 player.hp = Math.min(player.maxHp, player.hp + 40);
-                updateHPBar();
-                showWeaponPickupNotif(`💊 +${healed} HP!`);
+                updateHpBar();
+                showPickupNotif(`💊 +${gain > 0 ? gain : 0} HP!`);
             }
             pickups.splice(i, 1);
         }
     }
 
-    // Check wave complete
-    if (waveSpawnCount >= waveEnemyCount && enemies.length === 0) {
-        setTimeout(() => startWave(wave + 1), 1800);
-        waveSpawnCount = -9999; // prevent re-trigger
+    // ── Screen shake decay ──
+    if (screenShake > 0) screenShake = Math.max(0, screenShake - 0.7);
+
+    // ── Wave complete? ──
+    if (!waveComplete && waveSpawnCount >= waveEnemyCount && enemies.length === 0) {
+        waveComplete = true;
+        setTimeout(() => startWave(wave + 1), 2000);
     }
 }
 
+// ═══════════════════════════════════════════════
+//  DRAW (main)
+// ═══════════════════════════════════════════════
 function draw() {
-    ctx.clearRect(0, 0, W, H);
+    ctx.save();
+    // Screen shake
+    if (screenShake > 0) {
+        ctx.translate(
+            (Math.random() - 0.5) * screenShake,
+            (Math.random() - 0.5) * screenShake
+        );
+    }
+
+    ctx.clearRect(-10, -10, W + 20, H + 20);
     drawSky();
     drawStars();
     drawMountains();
     drawGround();
     drawObstacles();
 
-    // Pickups
     pickups.forEach(drawPickup);
 
-    // Player
+    // Draw player
     drawPerson(
-        player.x, player.y, player.w, player.h,
-        player.angle, player.color, player.bodyColor, '#0d47a1',
-        player.legAnim, player.weapon, 0, 0, false
+        { ...player,
+          color: '#4fc3f7', bodyColor: '#1565c0',
+          elite: false, hitFlash: 0 },
+        true
     );
 
-    // Enemies
-    enemies.forEach(e => {
-        if (e.alive)
-            drawPerson(e.x, e.y, e.w, e.h, e.angle, e.color, e.bodyColor, e.elite ? '#6a1040' : '#1b5e20', e.legAnim, 'pistol', e.hp, e.maxHp, e.elite);
-    });
+    // Draw enemies
+    enemies.forEach(e => { if (e.alive) drawPerson(e, false); });
 
     // Bullets
     bullets.forEach(drawBullet);
 
     // Particles
-    particles.forEach(drawParticle);
-
-    // Reload indicator
-    if (player.reloading) {
-        const w = WEAPONS[player.weapon];
-        const prog = 1 - player.reloadTimer / w.reloadTime;
+    particles.forEach(p => {
+        const alpha = p.life / p.maxLife;
         ctx.save();
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r * alpha, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+    });
+
+    // Damage numbers
+    drawDmgNumbers();
+
+    // Reload ring above player
+    if (player.reloading) {
+        const wep  = WEAPONS[player.weapon];
+        const prog = 1 - player.reloadTimer / wep.reloadTime;
+        const rx = player.x + player.w/2;
+        const ry = player.y - 22;
+        ctx.save();
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.beginPath(); ctx.arc(rx, ry, 13, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#f5a623'; ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(player.x + player.w/2, player.y - 18, 12, 0, Math.PI*2);
-        ctx.fill();
-        ctx.strokeStyle = '#f5a623';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(player.x + player.w/2, player.y - 18, 12, -Math.PI/2, -Math.PI/2 + Math.PI*2*prog);
+        ctx.arc(rx, ry, 13, -Math.PI/2, -Math.PI/2 + Math.PI*2*prog);
         ctx.stroke();
         ctx.restore();
     }
+
+    ctx.restore(); // end shake
+
+    // Crosshair is drawn outside shake
+    drawCrosshair();
 }
 
-function updateHPBar() {
-    const pct = Math.max(0, player.hp) / player.maxHp * 100;
-    document.getElementById('hpText').textContent = Math.max(0, Math.floor(player.hp));
-    document.getElementById('healthFill').style.width = pct + '%';
-}
-
-function gameLoop(timestamp) {
+// ═══════════════════════════════════════════════
+//  GAME LOOP
+// ═══════════════════════════════════════════════
+function gameLoop(ts) {
     if (!gameRunning) return;
-    const dt = Math.min(timestamp - lastTime, 50);
-    lastTime = timestamp;
-    update(dt, timestamp);
+    const dt = Math.min(ts - lastTime, 50);
+    lastTime = ts;
+    update(dt, ts);
     draw();
     animId = requestAnimationFrame(gameLoop);
 }
 
+// ═══════════════════════════════════════════════
+//  START / RESET
+// ═══════════════════════════════════════════════
 function startGame() {
-    // Reset everything
-    player.x = W/2 - player.w/2;
-    player.y = GROUND_Y - player.h - 10;
-    player.hp = 100;
-    player.weapon = 'pistol';
-    player.ammo = WEAPONS.pistol.maxAmmo;
-    player.reloading = false;
-    player.lastShot = 0;
-    player.legAnim = 0;
-    kills = 0;
-    wave = 0;
-    enemies.length = 0;
-    bullets.length = 0;
+    // ── Always start with PISTOL ──
+    player.x       = W/2 - player.w/2;
+    player.y       = GROUND_Y - player.h - 10;
+    player.hp      = 100;
+    player.weapon  = 'pistol';   // ← guaranteed pistol
+    player.hasAk   = false;
+    player.ammo    = WEAPONS.pistol.maxAmmo;
+    player.reloading  = false;
+    player.reloadTimer = 0;
+    player.lastShot   = 0;
+    player.legAnim    = 0;
+
+    kills = 0; wave = 0;
+    enemies.length  = 0;
+    bullets.length  = 0;
     particles.length = 0;
-    pickups.length = 0;
+    pickups.length  = 0;
+    dmgNumbers.length = 0;
+    screenShake = 0;
+    mouseDown = false;
+
     document.getElementById('killCount').textContent = '0';
-    document.getElementById('weaponName').textContent = 'PISTOL';
     document.getElementById('overlay').style.display = 'none';
-    updateHPBar();
-    drawAmmoBar();
+    setReloadLabel('');
+    updateHpBar();
+    updateAmmoBar();
+    updateAkStatus();
+
     generateMap();
     generateMountains();
+
     gameRunning = true;
-    lastTime = performance.now();
+    lastTime    = performance.now();
     startWave(1);
     animId = requestAnimationFrame(gameLoop);
 }
@@ -1057,47 +1191,62 @@ function gameOver() {
     ov.innerHTML = `
         <h1>GAME OVER</h1>
         <h2>You were eliminated!</h2>
-        <div id="scoreDisplay">💀 Kills: ${kills} &nbsp;|&nbsp; 🌊 Wave: ${wave}</div>
-        <p>Final weapon: ${WEAPONS[player.weapon].name}</p>
-        <button id="restartBtn" onclick="startGame()">🔄 PLAY AGAIN</button>
+        <div id="scoreDisplay">💀 ${kills} kills &nbsp;|&nbsp; 🌊 Wave ${wave}</div>
+        <p>Final weapon: <b>${WEAPONS[player.weapon].name}</b></p>
+        <button class="play-btn" onclick="startGame()">🔄 PLAY AGAIN</button>
     `;
     ov.style.display = 'flex';
 }
 
-// ===================== INPUT =====================
+// ═══════════════════════════════════════════════
+//  INPUT
+// ═══════════════════════════════════════════════
 canvas.addEventListener('mousemove', e => {
-    const rect = canvas.getBoundingClientRect();
-    mouseX = e.clientX - rect.left;
-    mouseY = e.clientY - rect.top;
+    const r = canvas.getBoundingClientRect();
+    mouseX = e.clientX - r.left;
+    mouseY = e.clientY - r.top;
 });
-
 canvas.addEventListener('mousedown', e => {
-    if (e.button === 0) {
-        mouseDown = true;
-        if (gameRunning) tryShoot(performance.now());
-    }
+    if (e.button === 0) { mouseDown = true; if (gameRunning) tryShoot(performance.now()); }
 });
-canvas.addEventListener('mouseup', e => { if (e.button === 0) mouseDown = false; });
+canvas.addEventListener('mouseup',   e => { if (e.button === 0) mouseDown = false; });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 document.addEventListener('keydown', e => {
     keys[e.key] = true;
+    if (!gameRunning) return;
     if (e.key === 'r' || e.key === 'R') startReload();
+    // Switch to pistol with key 1
+    if (e.key === '1' && player.hasAk) {
+        player.weapon    = 'pistol';
+        player.ammo      = WEAPONS.pistol.maxAmmo;
+        player.reloading = false;
+        setReloadLabel('');
+        updateAmmoBar();
+        showPickupNotif('🔫 Switched to Pistol');
+    }
+    // Switch to AK with key 2
+    if (e.key === '2' && player.hasAk) {
+        player.weapon    = 'ak47';
+        player.ammo      = WEAPONS.ak47.maxAmmo;
+        player.reloading = false;
+        setReloadLabel('');
+        updateAmmoBar();
+        showPickupNotif('💥 Switched to AK-47');
+    }
     e.preventDefault();
 });
 document.addEventListener('keyup', e => { keys[e.key] = false; });
 
 document.getElementById('startBtn').addEventListener('click', startGame);
 
-// Auto-fire loop for AK47
+// AK-47 auto-fire loop
 setInterval(() => {
-    if (!gameRunning) return;
-    if (mouseDown && player.weapon === 'ak47') {
-        tryShoot(performance.now());
-    }
+    if (!gameRunning || !mouseDown || player.weapon !== 'ak47') return;
+    tryShoot(performance.now());
 }, 50);
 
-// Initial draw
+// ── Initial preview draw ──
 generateMountains();
 generateMap();
 draw();
