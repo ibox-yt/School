@@ -142,11 +142,12 @@
     <div id="overlay">
         <h1>MOUNTAIN SHOOTER</h1>
         <h2>Survive the waves!</h2>
-        <p>🎮 WASD / Arrow Keys — Move</p>
+        <p>🎮 A / D or Arrow Keys — Move Left &amp; Right</p>
         <p>🖱️ Mouse — Aim &amp; Shoot (Left Click)</p>
         <p>🔄 R — Reload &nbsp;|&nbsp; 1/2/3 — Switch weapon</p>
         <p>💰 Enemies drop <b>kdor</b> — walk to the <b>house</b> and press <b>E</b> to shop</p>
         <p>🔫 Upgrade weapons &amp; buy up to 2 auto-turrets!</p>
+        <p>💀🔫 Elite (Gun) — fires AK-47 &nbsp;|&nbsp; 💀👊 Elite (Fist) — pure melee, no shooting</p>
         <button class="play-btn" id="startBtn">▶ PLAY</button>
     </div>
 </div>
@@ -258,8 +259,8 @@ const TURRET_SPOTS = [
     { x: 550, y: GROUND_Y - 36 },
 ];
 const TURRET_STATS = [
-    { damage: 18, fireRate: 900,  range: 260, bulletColor: '#29b6f6', bulletSpeed: 11 },  // level 1
-    { damage: 32, fireRate: 500,  range: 340, bulletColor: '#00e5ff', bulletSpeed: 14 },  // level 2
+    { damage: 35, fireRate: 600,  range: 300, bulletColor: '#29b6f6', bulletSpeed: 14 },  // level 1
+    { damage: 55, fireRate: 300,  range: 420, bulletColor: '#00e5ff', bulletSpeed: 18 },  // level 2
 ];
 
 function createTurret(slot) {
@@ -313,23 +314,48 @@ function generateMountains() {
 // ═══════════════════════════════════════════════════════
 //  ENEMIES
 // ═══════════════════════════════════════════════════════
+// Enemy spawns only from left or right edge, always on the ground row
+// Elite sub-types: 'gun' (AK47, weaker dmg), 'fist' (melee only, more hp)
 function spawnEnemy() {
-    const side    = Math.random() < 0.5 ? 'left' : 'right';
-    const x       = side === 'left' ? -32 : W+32;
-    const isElite = wave > 2 && Math.random() < 0.22;
-    const baseHp  = isElite ? 120+wave*8 : 45+wave*6;
-    const kdorDrop= isElite ? 15+Math.floor(Math.random()*10) : 5+Math.floor(Math.random()*6);
+    // Always spawn from left or right edge — never behind the house
+    // House occupies x:20..130, so left-side spawns start well to the right of it
+    const side = Math.random() < 0.5 ? 'left' : 'right';
+    // Left spawners come from x = -32 (off-screen left)
+    // Right spawners come from x = W+32 (off-screen right)
+    // The house is on the left wall; enemies walk horizontally so they
+    // approach from outside and can never start behind the house.
+    const x = side === 'left' ? -32 : W + 32;
+
+    const isElite = wave > 2 && Math.random() < 0.25;
+    const baseHp  = isElite ? 140 + wave * 8 : 45 + wave * 5;
+    const kdorDrop = isElite ? 18 + Math.floor(Math.random()*12) : 5 + Math.floor(Math.random()*6);
+
+    // Elite sub-type: 50% chance AK47, 50% chance fists-only
+    const eliteType = isElite ? (Math.random() < 0.5 ? 'gun' : 'fist') : 'normal';
+
+    // gun-elites shoot AK with nerfed damage; fist-elites never shoot, hit harder in melee
+    const meleeDamage = eliteType === 'fist' ? 14 : eliteType === 'gun' ? 6 : 5;
+    const shootCooldown = eliteType === 'gun' ? 700 + Math.random()*400
+                        : eliteType === 'fist' ? Infinity
+                        : 1600 + Math.random()*900;
+
     enemies.push({
-        x, y: GROUND_Y-36, w:26, h:36,
-        speed: 1.0+Math.random()*0.5+wave*0.07,
+        x,
+        y: GROUND_Y - 36,   // always ground level
+        w: 26, h: 36,
+        speed: 1.0 + Math.random()*0.5 + wave*0.07,
         hp: baseHp, maxHp: baseHp,
-        color:     isElite ? '#f48fb1' : '#81c784',
-        bodyColor: isElite ? '#880e4f' : '#2e7d32',
-        damage: isElite ? 16 : 10,
-        attackRate: isElite ? 650 : 950, lastAttack: 0,
+        color:     isElite ? (eliteType==='gun' ? '#f48fb1' : '#ffab40') : '#81c784',
+        bodyColor: isElite ? (eliteType==='gun' ? '#880e4f' : '#e65100') : '#2e7d32',
+        damage: meleeDamage,
+        attackRate: eliteType === 'fist' ? 600 : 950,
+        lastAttack: 0,
         angle: 0, legAnim: 0, alive: true,
-        shootCooldown: 1400+Math.random()*900, lastEnemyShot: 0,
-        elite: isElite, hitFlash: 0,
+        shootCooldown,
+        lastEnemyShot: 0,
+        elite: isElite,
+        eliteType,   // 'normal' | 'gun' | 'fist'
+        hitFlash: 0,
         kdorDrop,
     });
 }
@@ -348,13 +374,34 @@ function startWave(n) {
 // ═══════════════════════════════════════════════════════
 //  BULLETS
 // ═══════════════════════════════════════════════════════
+// Enemy AK47 — weaker damage than player AK
+const ENEMY_AK = { damage: 10, bulletSpeed: 14, bulletColor: '#ffb74d', spread: 0.12 };
+
 function fireBullet(fromPlayer, x, y, angle, wepKey, fromTurret=false) {
-    const w = WEAPONS[wepKey] || WEAPONS.pistol;
-    const color = fromTurret ? TURRET_STATS[0].bulletColor : w.bulletColor;
-    const speed = fromTurret ? 12 : w.bulletSpeed;
-    const dmg   = fromTurret ? 18 : w.damage;
-    const a = angle+(Math.random()-0.5)*(fromTurret?0.04:w.spread);
-    bullets.push({ x, y, vx:Math.cos(a)*speed, vy:Math.sin(a)*speed, damage:dmg, fromPlayer: fromPlayer||fromTurret, color, life:90, r: fromPlayer?4:3, trail:[] });
+    let color, speed, dmg, spread;
+    if (wepKey === 'ak47_enemy') {
+        color  = ENEMY_AK.bulletColor;
+        speed  = ENEMY_AK.bulletSpeed;
+        dmg    = ENEMY_AK.damage;
+        spread = ENEMY_AK.spread;
+    } else {
+        const w = WEAPONS[wepKey] || WEAPONS.pistol;
+        color  = fromTurret ? TURRET_STATS[0].bulletColor : w.bulletColor;
+        speed  = fromTurret ? 14 : w.bulletSpeed;
+        dmg    = fromTurret ? 35 : w.damage;
+        spread = fromTurret ? 0.04 : w.spread;
+    }
+    const a = angle + (Math.random() - 0.5) * spread;
+    bullets.push({
+        x, y,
+        vx: Math.cos(a) * speed,
+        vy: Math.sin(a) * speed,
+        damage: dmg,
+        fromPlayer: fromPlayer || fromTurret,
+        color, life: 90,
+        r: fromPlayer ? 4 : 3,
+        trail: []
+    });
 }
 function fireTurretBullet(t, angle) {
     const st = TURRET_STATS[t.level-1];
@@ -623,7 +670,7 @@ function drawTurret(t) {
 // ═══════════════════════════════════════════════════════
 function drawPerson(e, isPlayer) {
     const { x, y, w, h, angle, color, bodyColor, legAnim, elite } = e;
-    const wepKey = isPlayer ? player.weapon : 'pistol';
+    const wepKey = isPlayer ? player.weapon : (e.eliteType==='gun' ? 'ak47' : 'pistol');
     ctx.save(); ctx.translate(x+w/2, y+h/2);
 
     // Hit flash
@@ -699,7 +746,9 @@ function drawPerson(e, isPlayer) {
         ctx.fillStyle='rgba(255,255,255,0.18)'; ctx.beginPath(); ctx.roundRect(bx,by,bw*pct,barH*0.45,[3,3,0,0]); ctx.fill();
         ctx.fillStyle='#fff'; ctx.font='bold 8px Courier New'; ctx.textAlign='center';
         ctx.fillText(`${Math.ceil(e.hp)}/${e.maxHp}`,0,by-2);
-        if (elite) { ctx.fillStyle='#f06292'; ctx.font='10px serif'; ctx.fillText('💀',bx-10,by+barH-1); }
+        // Elite type badge
+        if (e.eliteType==='gun')  { ctx.fillStyle='#f06292'; ctx.font='9px serif'; ctx.fillText('💀🔫',bx-8,by+barH); }
+        if (e.eliteType==='fist') { ctx.fillStyle='#ffab40'; ctx.font='9px serif'; ctx.fillText('💀👊',bx-8,by+barH); }
         // kdor drop label
         ctx.fillStyle='#ffd54f'; ctx.font='7px Courier New'; ctx.textAlign='center';
         ctx.fillText(`+${e.kdorDrop}💰`,0,by-11);
@@ -904,20 +953,21 @@ function tryShoot(now) {
 function update(dt, now) {
     if (shopOpen) return;
 
-    // ── Player move ──
-    let dx=0,dy=0;
-    if (keys['ArrowLeft']||keys['a']||keys['A'])  dx-=1;
-    if (keys['ArrowRight']||keys['d']||keys['D']) dx+=1;
-    if (keys['ArrowUp']||keys['w']||keys['W'])    dy-=1;
-    if (keys['ArrowDown']||keys['s']||keys['S'])  dy+=1;
-    if (dx&&dy){dx*=0.707;dy*=0.707;}
-    const nx=Math.max(0,Math.min(W-player.w,player.x+dx*player.speed));
-    const ny=Math.max(0,Math.min(GROUND_Y-player.h,player.y+dy*player.speed));
-    // Keep player out of house area
-    if (!rectOverlap(nx,player.y,player.w,player.h,HOUSE.x,HOUSE.y,HOUSE.w,HOUSE.h)) player.x=nx;
-    if (!rectOverlap(player.x,ny,player.w,player.h,HOUSE.x,HOUSE.y,HOUSE.w,HOUSE.h)) player.y=ny;
-    if (dx||dy) player.legAnim+=0.18;
-    player.angle=Math.atan2(mouseY-(player.y+player.h/2), mouseX-(player.x+player.w/2));
+    // ── Player move — LEFT / RIGHT only, locked to ground ──
+    let dx = 0;
+    if (keys['ArrowLeft']  || keys['a'] || keys['A']) dx -= 1;
+    if (keys['ArrowRight'] || keys['d'] || keys['D']) dx += 1;
+
+    // Player is always pinned to the ground row
+    player.y = GROUND_Y - player.h;
+
+    const nx = Math.max(0, Math.min(W - player.w, player.x + dx * player.speed));
+    // Keep player out of house footprint (x-axis only; y is fixed)
+    if (!rectOverlap(nx, player.y, player.w, player.h, HOUSE.x, HOUSE.y, HOUSE.w, HOUSE.h)) {
+        player.x = nx;
+    }
+    if (dx) player.legAnim += 0.18;
+    player.angle = Math.atan2(mouseY - (player.y + player.h/2), mouseX - (player.x + player.w/2));
 
     // Auto-fire
     if (mouseDown) tryShoot(now);
@@ -944,39 +994,65 @@ function update(dt, now) {
         if (waveSpawnTimer<=0) { spawnEnemy(); waveSpawnCount++; waveSpawnTimer=550+Math.random()*750; }
     }
 
-    // ── Enemy AI ──
+    // ── Enemy AI — horizontal movement only, pinned to ground ──
     for (const e of enemies) {
         if (!e.alive) continue;
-        if (e.hitFlash>0) e.hitFlash--;
-        const ex=e.x+e.w/2,ey=e.y+e.h/2;
-        const dist=Math.hypot(px-ex,py-ey);
-        e.angle=Math.atan2(py-ey,px-ex);
-        if (dist>55) {
-            const evx=Math.cos(e.angle)*e.speed, evy=Math.sin(e.angle)*e.speed;
-            const enx=e.x+evx, eny=e.y+evy;
-            // Don't walk into house
-            if (!rectOverlap(enx,e.y,e.w,e.h,HOUSE.x,HOUSE.y,HOUSE.w,HOUSE.h)) e.x+=evx;
-            if (!rectOverlap(e.x,eny,e.w,e.h,HOUSE.x,HOUSE.y,HOUSE.w,HOUSE.h)) e.y+=evy;
-            e.y=Math.min(GROUND_Y-e.h,e.y); e.legAnim+=0.15;
+        if (e.hitFlash > 0) e.hitFlash--;
+
+        // Pin enemies to ground at all times
+        e.y = GROUND_Y - e.h;
+
+        const ex = e.x + e.w/2;
+        const ey = e.y + e.h/2;
+        const distX = (player.x + player.w/2) - ex;   // horizontal distance to player
+        const distAbs = Math.abs(distX);
+
+        // Face toward player (horizontal angle only — no vertical component)
+        e.angle = distX >= 0 ? 0 : Math.PI;
+
+        // Move horizontally toward player if not in melee range
+        if (distAbs > 30) {
+            const moveDir = distX > 0 ? 1 : -1;
+            const enx = e.x + moveDir * e.speed;
+            // Stop enemies from walking into the house
+            if (!rectOverlap(enx, e.y, e.w, e.h, HOUSE.x, HOUSE.y, HOUSE.w, HOUSE.h)) {
+                e.x = enx;
+            }
+            e.legAnim += 0.15;
         }
-        if (dist<360 && now-e.lastEnemyShot>e.shootCooldown) {
-            e.lastEnemyShot=now; fireBullet(false,ex,ey,e.angle,'pistol');
+
+        // Clamp to map bounds
+        e.x = Math.max(-e.w, Math.min(W, e.x));
+
+        // Shooting (gun-elites use AK, normals use pistol; fist-elites never shoot)
+        if (e.eliteType !== 'fist' && distAbs < 400 && now - e.lastEnemyShot > e.shootCooldown) {
+            e.lastEnemyShot = now;
+            // Aim straight at player with slight upward arc to match height
+            const shootAngle = Math.atan2((player.y + player.h/2) - ey, (player.x + player.w/2) - ex);
+            const wepKey = e.eliteType === 'gun' ? 'ak47_enemy' : 'pistol';
+            fireBullet(false, ex, ey, shootAngle, wepKey);
         }
+
         // Melee player
-        if (rectOverlap(player.x,player.y,player.w,player.h,e.x,e.y,e.w,e.h)) {
-            if (now-e.lastAttack>e.attackRate) {
-                player.hp-=e.damage; e.lastAttack=now; screenShake=8;
-                spawnParticles(player.x+player.w/2,player.y,'#e94560',5);
-                updateHpBar(); if (player.hp<=0){gameOver();return;}
+        if (rectOverlap(player.x, player.y, player.w, player.h, e.x, e.y, e.w, e.h)) {
+            if (now - e.lastAttack > e.attackRate) {
+                player.hp -= e.damage;
+                e.lastAttack = now;
+                screenShake = 6;
+                spawnParticles(player.x + player.w/2, player.y, '#e94560', 5);
+                updateHpBar();
+                if (player.hp <= 0) { gameOver(); return; }
             }
         }
+
         // Melee turrets
-        turrets.forEach(t=>{
+        turrets.forEach(t => {
             if (!t) return;
-            if (rectOverlap(e.x,e.y,e.w,e.h,t.x,t.y,t.w,t.h)) {
-                if (now-e.lastAttack>e.attackRate) {
-                    t.hp-=e.damage; e.lastAttack=now;
-                    spawnParticles(t.x+t.w/2,t.y,'#29b6f6',4);
+            if (rectOverlap(e.x, e.y, e.w, e.h, t.x, t.y, t.w, t.h)) {
+                if (now - e.lastAttack > e.attackRate) {
+                    t.hp -= e.damage;
+                    e.lastAttack = now;
+                    spawnParticles(t.x + t.w/2, t.y, '#29b6f6', 4);
                 }
             }
         });
@@ -1025,7 +1101,7 @@ function update(dt, now) {
                         e.alive=false; kills++;
                         document.getElementById('killCount').textContent=kills;
                         spawnParticles(e.x+e.w/2,e.y+e.h/2,e.elite?'#f06292':'#81c784',16);
-                        showKillNotif(e.elite?'💀 ELITE DOWN!':'💀 KILL!');
+                        showKillNotif(e.eliteType==='gun'?'💀 ELITE [GUN] DOWN!':e.eliteType==='fist'?'💀 ELITE [FIST] DOWN!':'💀 KILL!');
                         // KDOR DROP
                         addKdor(e.kdorDrop);
                         spawnCoinBurst(e.x+e.w/2,e.y+e.h/2,e.kdorDrop);
