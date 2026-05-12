@@ -84,6 +84,7 @@
         #overlay h1 { font-size: 52px; color: #e94560; text-shadow: 0 0 24px #e94560; margin-bottom: 8px; letter-spacing: 5px; }
         #overlay h2 { font-size: 20px; color: #f5a623; margin-bottom: 22px; }
         #overlay p  { font-size: 14px; color: #aaa; margin: 4px 0; text-align: center; }
+        #madeBy { font-size: 12px; color: #555; margin-top: 18px; letter-spacing: 1px; font-style: italic; }
         .play-btn { margin-top: 28px; padding: 14px 44px; font-size: 20px; font-family: 'Courier New', monospace; background: #e94560; color: #fff; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 0 22px #e94560aa; letter-spacing: 2px; transition: background 0.2s, transform 0.1s; }
         .play-btn:hover { background: #c73250; transform: scale(1.06); }
         #scoreDisplay { font-size: 30px; color: #f5a623; margin: 10px 0; }
@@ -148,7 +149,9 @@
         <p>💰 Enemies drop <b>kdor</b> — walk to the <b>house</b> and press <b>E</b> to shop</p>
         <p>🔫 Upgrade weapons &amp; buy up to 2 auto-turrets!</p>
         <p>💀🔫 Elite (Gun) — fires AK-47 &nbsp;|&nbsp; 💀👊 Elite (Fist) — pure melee, no shooting</p>
+        <p>💙 <b style="color:#4fc3f7;">Blue Runners</b> appear in Wave 3+ — tiny, super fast, but <b>1-shot</b> kills!</p>
         <button class="play-btn" id="startBtn">▶ PLAY</button>
+        <div id="madeBy">made by Bronson Brooks</div>
     </div>
 </div>
 
@@ -314,6 +317,34 @@ function generateMountains() {
 // ═══════════════════════════════════════════════════════
 //  ENEMIES
 // ═══════════════════════════════════════════════════════
+// ─── Spawn a blue runner ───
+function spawnRunner() {
+    const side = Math.random() < 0.5 ? 'left' : 'right';
+    const x    = side === 'left' ? -20 : W + 20;
+    const speed = RUNNER_SPEED_BASE + Math.random() * 1.4 + wave * 0.05;
+    const kdorDrop = 2 + Math.floor(Math.random() * 3);
+    enemies.push({
+        x,
+        y: GROUND_Y - 20,   // shorter body sits higher
+        w: 16, h: 20,       // small!
+        speed,
+        hp: 1, maxHp: 1,    // 1-shot kill
+        color:     RUNNER_COLOR,
+        bodyColor: RUNNER_BODY_COLOR,
+        damage: RUNNER_CONTACT_DMG,
+        attackRate: RUNNER_ATTACK_RATE,
+        lastAttack: 0,
+        angle: 0, legAnim: 0, alive: true,
+        shootCooldown: Infinity,   // runners never shoot
+        lastEnemyShot: 0,
+        elite: false,
+        eliteType: 'runner',       // special tag
+        hitFlash: 0,
+        kdorDrop,
+        isRunner: true,
+    });
+}
+
 // Enemy spawns only from left or right edge, always on the ground row
 // Elite sub-types: 'gun' (AK47, weaker dmg), 'fist' (melee only, more hp)
 function spawnEnemy() {
@@ -363,9 +394,20 @@ function spawnEnemy() {
 // ═══════════════════════════════════════════════════════
 //  WAVE
 // ═══════════════════════════════════════════════════════
+// Per-wave runner quota: 0 before wave 3, then ramps up
+function runnerCountForWave(n) {
+    if (n < 3) return 0;
+    return Math.floor((n - 2) * 2.5);  // wave3=2, wave4=5, wave5=7 …
+}
+
+let waveRunnerCount = 0, waveRunnerSpawned = 0, waveRunnerTimer = 0;
+
 function startWave(n) {
-    wave = n; waveEnemyCount = 5+(n-1)*3;
+    wave = n; waveEnemyCount = 5 + (n - 1) * 3;
     waveSpawnCount = 0; waveSpawnTimer = 0; waveComplete = false;
+    waveRunnerCount   = runnerCountForWave(n);
+    waveRunnerSpawned = 0;
+    waveRunnerTimer   = 800;   // first runner appears after short delay
     document.getElementById('waveNum').textContent = wave;
     showWaveNotif(`⚔️  WAVE  ${wave}`);
     spawnMapHealthPacks();
@@ -376,6 +418,16 @@ function startWave(n) {
 // ═══════════════════════════════════════════════════════
 // Enemy AK47 — weaker damage than player AK
 const ENEMY_AK = { damage: 10, bulletSpeed: 14, bulletColor: '#ffb74d', spread: 0.12 };
+
+// ═══════════════════════════════════════════════════════
+//  BLUE RUNNER CONFIG
+// ═══════════════════════════════════════════════════════
+// Blue runners: tiny, super fast, 1-shot to kill, deal contact damage
+const RUNNER_COLOR      = '#29b6f6';
+const RUNNER_BODY_COLOR = '#0277bd';
+const RUNNER_SPEED_BASE = 4.2;   // base px per frame — very fast
+const RUNNER_CONTACT_DMG = 8;    // damage when they touch player
+const RUNNER_ATTACK_RATE = 700;  // ms between contact hits
 
 function fireBullet(fromPlayer, x, y, angle, wepKey, fromTurret=false) {
     let color, speed, dmg, spread;
@@ -661,6 +713,69 @@ function drawTurret(t) {
     ctx.fillStyle = t.hp > t.maxHp*0.5 ? '#29b6f6' : '#ff5722';
     ctx.fillRect(-14, -22, 28*(t.hp/t.maxHp), 5);
     ctx.strokeStyle='#333'; ctx.lineWidth=0.5; ctx.strokeRect(-14,-22,28,5);
+
+    ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════
+//  DRAW — BLUE RUNNER  (separate small draw function)
+// ═══════════════════════════════════════════════════════
+function drawRunner(e) {
+    const { x, y, w, h, legAnim, hitFlash, hp, maxHp, kdorDrop } = e;
+    ctx.save();
+    ctx.translate(x + w/2, y + h/2);
+
+    // Hit flash
+    if (hitFlash > 0) {
+        ctx.save(); ctx.globalAlpha = hitFlash / 8; ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.roundRect(-w/2-1, -h/2-1, w+2, h+2, 4); ctx.fill(); ctx.restore();
+    }
+
+    // Ground shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath(); ctx.ellipse(0, h/2+2, w/2+1, 3, 0, 0, Math.PI*2); ctx.fill();
+
+    // Fast-moving legs (rapid flicker)
+    const legOff = Math.sin(legAnim * 2.5) * 4;
+    ctx.fillStyle = RUNNER_BODY_COLOR;
+    ctx.beginPath(); ctx.roundRect(-w/2+1, h/4, 5, h/3+legOff, 2); ctx.fill();
+    ctx.beginPath(); ctx.roundRect( w/2-6, h/4, 5, h/3-legOff, 2); ctx.fill();
+
+    // Body — small oval
+    const bgrad = ctx.createLinearGradient(-w/2, -h/3, w/2, h/3);
+    bgrad.addColorStop(0, '#0288d1');
+    bgrad.addColorStop(1, RUNNER_COLOR);
+    ctx.fillStyle = bgrad;
+    ctx.beginPath(); ctx.roundRect(-w/2, -h/3, w, h*0.65, 4); ctx.fill();
+
+    // Glowing blue outline (makes them pop)
+    ctx.strokeStyle = '#80d8ff'; ctx.lineWidth = 1.5;
+    ctx.shadowBlur = 8; ctx.shadowColor = '#29b6f6';
+    ctx.beginPath(); ctx.roundRect(-w/2, -h/3, w, h*0.65, 4); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Tiny head
+    ctx.fillStyle = RUNNER_COLOR;
+    ctx.beginPath(); ctx.arc(0, -h/3 - 6, 6, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#0288d1'; ctx.lineWidth = 1; ctx.stroke();
+
+    // Beady eyes
+    const eyeDir = e.angle === 0 ? 1 : -1;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(eyeDir*2, -h/3-7, 2, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(eyeDir*2+eyeDir*0.5, -h/3-7, 1, 0, Math.PI*2); ctx.fill();
+
+    // HP bar (always full since 1-shot, but show the bar for consistency)
+    const bw = w + 6, bx = -bw/2, by = -h/2 - 14, barH = 4;
+    ctx.fillStyle = '#111';
+    ctx.beginPath(); ctx.roundRect(bx-1, by-1, bw+2, barH+2, 3); ctx.fill();
+    ctx.fillStyle = '#29b6f6';
+    ctx.beginPath(); ctx.roundRect(bx, by, bw, barH, 2); ctx.fill();
+
+    // kdor label
+    ctx.fillStyle = '#ffd54f'; ctx.font = '6px Courier New'; ctx.textAlign = 'center';
+    ctx.fillText(`+${kdorDrop}💰`, 0, by - 3);
 
     ctx.restore();
 }
@@ -988,10 +1103,24 @@ function update(dt, now) {
     const hint=document.getElementById('shopHint');
     hint.style.opacity = (houseDist<120 && gameRunning) ? '1' : '0';
 
-    // ── Spawn enemies ──
-    if (waveSpawnCount<waveEnemyCount) {
-        waveSpawnTimer-=dt;
-        if (waveSpawnTimer<=0) { spawnEnemy(); waveSpawnCount++; waveSpawnTimer=550+Math.random()*750; }
+    // ── Spawn regular enemies ──
+    if (waveSpawnCount < waveEnemyCount) {
+        waveSpawnTimer -= dt;
+        if (waveSpawnTimer <= 0) {
+            spawnEnemy();
+            waveSpawnCount++;
+            waveSpawnTimer = 550 + Math.random() * 750;
+        }
+    }
+
+    // ── Spawn blue runners (wave 3+) ──
+    if (waveRunnerSpawned < waveRunnerCount) {
+        waveRunnerTimer -= dt;
+        if (waveRunnerTimer <= 0) {
+            spawnRunner();
+            waveRunnerSpawned++;
+            waveRunnerTimer = 350 + Math.random() * 500;  // runners come in quick bursts
+        }
     }
 
     // ── Enemy AI — horizontal movement only, pinned to ground ──
@@ -999,7 +1128,7 @@ function update(dt, now) {
         if (!e.alive) continue;
         if (e.hitFlash > 0) e.hitFlash--;
 
-        // Pin enemies to ground at all times
+        // Pin enemies (and runners) to ground at all times
         e.y = GROUND_Y - e.h;
 
         const ex = e.x + e.w/2;
@@ -1101,7 +1230,11 @@ function update(dt, now) {
                         e.alive=false; kills++;
                         document.getElementById('killCount').textContent=kills;
                         spawnParticles(e.x+e.w/2,e.y+e.h/2,e.elite?'#f06292':'#81c784',16);
-                        showKillNotif(e.eliteType==='gun'?'💀 ELITE [GUN] DOWN!':e.eliteType==='fist'?'💀 ELITE [FIST] DOWN!':'💀 KILL!');
+                        showKillNotif(
+                            e.isRunner        ? '💙 RUNNER DOWN!' :
+                            e.eliteType==='gun'  ? '💀 ELITE [GUN] DOWN!' :
+                            e.eliteType==='fist' ? '💀 ELITE [FIST] DOWN!' :
+                            '💀 KILL!');
                         // KDOR DROP
                         addKdor(e.kdorDrop);
                         spawnCoinBurst(e.x+e.w/2,e.y+e.h/2,e.kdorDrop);
@@ -1162,8 +1295,9 @@ function update(dt, now) {
 
     if (screenShake>0) screenShake=Math.max(0,screenShake-0.7);
 
-    // Wave complete
-    if (!waveComplete && waveSpawnCount>=waveEnemyCount && enemies.length===0){
+    // Wave complete — all regular enemies AND runners must be dead
+    if (!waveComplete && waveSpawnCount >= waveEnemyCount
+        && waveRunnerSpawned >= waveRunnerCount && enemies.length === 0) {
         waveComplete=true;
         setTimeout(()=>startWave(wave+1),2000);
     }
@@ -1181,7 +1315,7 @@ function draw() {
     turrets.forEach(t=>{ if(t) drawTurret(t); });
     pickups.forEach(drawPickup);
     drawPerson({...player,color:'#4fc3f7',bodyColor:'#1565c0',elite:false,hitFlash:0},true);
-    enemies.forEach(e=>{ if(e.alive) drawPerson(e,false); });
+    enemies.forEach(e=>{ if(e.alive) { if(e.isRunner) drawRunner(e); else drawPerson(e,false); } });
     bullets.forEach(drawBullet);
     particles.forEach(p=>{
         const alpha=p.life/p.maxLife; ctx.save(); ctx.globalAlpha=alpha;
@@ -1237,6 +1371,7 @@ function startGame() {
     enemies.length=0; bullets.length=0; particles.length=0;
     pickups.length=0; dmgNumbers.length=0; coinParticles.length=0;
     turrets=[null,null];
+    waveRunnerCount=0; waveRunnerSpawned=0; waveRunnerTimer=0;
     screenShake=0; mouseDown=false; shopOpen=false;
     document.getElementById('killCount').textContent='0';
     document.getElementById('kdorCount').textContent='0';
@@ -1258,6 +1393,7 @@ function gameOver() {
         <div id="scoreDisplay">💀 ${kills} kills &nbsp;|&nbsp; 🌊 Wave ${wave} &nbsp;|&nbsp; 💰 ${kdor} kdor left</div>
         <p>Final weapon: <b>${WEAPONS[player.weapon].name}</b></p>
         <button class="play-btn" onclick="startGame()">🔄 PLAY AGAIN</button>
+        <div style="font-size:12px;color:#444;margin-top:14px;font-style:italic;letter-spacing:1px;">made by Bronson Brooks</div>
     `;
     ov.style.display='flex';
 }
