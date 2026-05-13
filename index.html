@@ -319,8 +319,7 @@ function generateMountains() {
 // ═══════════════════════════════════════════════════════
 // ─── Spawn a blue runner ───
 function spawnRunner() {
-    const side = Math.random() < 0.5 ? 'left' : 'right';
-    const x    = side === 'left' ? -20 : W + 20;
+    const x = W + 20;  // always spawn from the right
     const speed = RUNNER_SPEED_BASE + Math.random() * 1.4 + wave * 0.05;
     const kdorDrop = 2 + Math.floor(Math.random() * 3);
     enemies.push({
@@ -348,14 +347,8 @@ function spawnRunner() {
 // Enemy spawns only from left or right edge, always on the ground row
 // Elite sub-types: 'gun' (AK47, weaker dmg), 'fist' (melee only, more hp)
 function spawnEnemy() {
-    // Always spawn from left or right edge — never behind the house
-    // House occupies x:20..130, so left-side spawns start well to the right of it
-    const side = Math.random() < 0.5 ? 'left' : 'right';
-    // Left spawners come from x = -32 (off-screen left)
-    // Right spawners come from x = W+32 (off-screen right)
-    // The house is on the left wall; enemies walk horizontally so they
-    // approach from outside and can never start behind the house.
-    const x = side === 'left' ? -32 : W + 32;
+    // Always spawn from the right edge — never behind the house
+    const x = W + 32;
 
     const isElite = wave > 2 && Math.random() < 0.25;
     const baseHp  = isElite ? 140 + wave * 8 : 45 + wave * 5;
