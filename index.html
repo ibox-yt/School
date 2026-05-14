@@ -98,6 +98,18 @@
 
         /* Enter shop hint */
         #shopHint { position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%); color: #ffd54f; font-size: 14px; font-weight: bold; pointer-events: none; opacity: 0; z-index: 20; text-shadow: 0 0 8px #ffd54f; transition: opacity 0.3s; white-space: nowrap; }
+
+        /* FULLSCREEN BUTTON */
+        #fullscreenBtn {
+            position: absolute; top: 8px; right: 8px; z-index: 50;
+            background: rgba(0,0,0,0.65); color: #fff;
+            border: 1.5px solid #e9456088; border-radius: 7px;
+            padding: 5px 10px; font-family: 'Courier New', monospace;
+            font-size: 13px; cursor: pointer; letter-spacing: 1px;
+            transition: background 0.2s, border-color 0.2s, transform 0.1s;
+            backdrop-filter: blur(4px); user-select: none;
+        }
+        #fullscreenBtn:hover { background: rgba(233,69,96,0.35); border-color: #e94560; transform: scale(1.07); }
     </style>
 </head>
 <body>
@@ -138,6 +150,9 @@
         <div class="shop-grid" id="shopGrid"></div>
         <button id="closeShopBtn">✖ Close Shop (E)</button>
     </div>
+
+    <!-- Fullscreen button -->
+    <button id="fullscreenBtn" title="Toggle Fullscreen">⛶ Fullscreen</button>
 
     <!-- Main overlay -->
     <div id="overlay">
@@ -910,19 +925,101 @@ function drawBullet(b) {
     ctx.shadowBlur=0; ctx.restore();
 }
 function drawCrosshair() {
+    // Spread indicator lines (weapon accuracy ring)
     const spread = player.weapon==='machinegun'?18:player.weapon==='ak47'?14:8;
-    ctx.save(); ctx.translate(mouseX,mouseY);
-    ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=1.5;
-    ctx.shadowBlur=4; ctx.shadowColor='#000';
-    const gap=4;
+    ctx.save();
+    ctx.translate(mouseX, mouseY);
+
+    // ── Aim gap lines ──
+    ctx.strokeStyle='rgba(255,255,255,0.75)'; ctx.lineWidth=1.2;
+    ctx.shadowBlur=3; ctx.shadowColor='#000';
+    const gap=5;
     ctx.beginPath();
     ctx.moveTo(-spread-gap,0); ctx.lineTo(-gap,0);
     ctx.moveTo(gap,0);         ctx.lineTo(spread+gap,0);
     ctx.moveTo(0,-spread-gap); ctx.lineTo(0,-gap);
     ctx.moveTo(0,gap);         ctx.lineTo(0,spread+gap);
     ctx.stroke();
-    ctx.fillStyle='#e94560'; ctx.beginPath(); ctx.arc(0,0,2,0,Math.PI*2); ctx.fill();
-    ctx.shadowBlur=0; ctx.restore();
+
+    // ── Center dot ──
+    ctx.fillStyle='#e94560';
+    ctx.shadowBlur=5; ctx.shadowColor='#e94560';
+    ctx.beginPath(); ctx.arc(0,0,2,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+
+    // ── Gun silhouette (points RIGHT; will rotate to aim angle) ──
+    const ang = Math.atan2(mouseY-(player.y+player.h/2), mouseX-(player.x+player.w/2));
+    ctx.rotate(ang);
+
+    const sc = 1.15; // overall scale
+    ctx.scale(sc, sc);
+
+    // drop shadow
+    ctx.shadowBlur=6; ctx.shadowColor='rgba(0,0,0,0.8)';
+
+    // --- barrel ---
+    ctx.fillStyle='#d4d4d4';
+    ctx.fillRect(10, -3, 22, 5);      // barrel tube
+
+    // --- suppressor tip ---
+    ctx.fillStyle='#aaaaaa';
+    ctx.fillRect(30, -4, 5, 7);
+
+    // --- slide / upper receiver ---
+    ctx.fillStyle='#cccccc';
+    ctx.fillRect(2, -7, 22, 8);       // slide top
+
+    // --- ejection port (dark cutout) ---
+    ctx.fillStyle='#555555';
+    ctx.fillRect(8, -6, 8, 4);
+
+    // --- lower frame / body ---
+    ctx.fillStyle='#bbbbbb';
+    ctx.fillRect(2, 1, 18, 6);        // lower receiver
+
+    // --- trigger guard ---
+    ctx.strokeStyle='#999'; ctx.lineWidth=1.5;
+    ctx.shadowBlur=0;
+    ctx.beginPath();
+    ctx.arc(10, 7, 5, 0, Math.PI);    // guard curve
+    ctx.stroke();
+
+    // --- trigger ---
+    ctx.strokeStyle='#777'; ctx.lineWidth=1.2;
+    ctx.beginPath();
+    ctx.moveTo(10, 1); ctx.lineTo(9, 6);
+    ctx.stroke();
+
+    // --- grip ---
+    ctx.fillStyle='#8B6914';          // wood-brown grip
+    ctx.beginPath();
+    ctx.moveTo(4,  7);
+    ctx.lineTo(14, 7);
+    ctx.lineTo(12, 18);
+    ctx.lineTo(3,  18);
+    ctx.closePath(); ctx.fill();
+
+    // grip texture lines
+    ctx.strokeStyle='rgba(0,0,0,0.25)'; ctx.lineWidth=0.8;
+    for (let gi=0; gi<3; gi++) {
+        ctx.beginPath();
+        ctx.moveTo(4+gi*2.5, 8); ctx.lineTo(3+gi*2.5, 17);
+        ctx.stroke();
+    }
+
+    // --- hammer ---
+    ctx.fillStyle='#aaa';
+    ctx.fillRect(-1, -8, 4, 5);
+
+    // --- front sight ---
+    ctx.fillStyle='#e94560';
+    ctx.fillRect(28, -9, 2, 3);
+
+    // --- rear sight notch ---
+    ctx.fillStyle='#e94560';
+    ctx.fillRect(4, -10, 3, 3);
+
+    ctx.restore();
 }
 function drawDmgNumbers() {
     dmgNumbers.forEach(d => {
@@ -1427,6 +1524,21 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('keyup',e=>{ keys[e.key]=false; });
 document.getElementById('startBtn').addEventListener('click',startGame);
 document.getElementById('closeShopBtn').addEventListener('click',closeShop);
+
+// ── Fullscreen button ──
+const fsBtn = document.getElementById('fullscreenBtn');
+function updateFsIcon() {
+    fsBtn.textContent = document.fullscreenElement ? '✕ Exit Full' : '⛶ Fullscreen';
+}
+fsBtn.addEventListener('click', () => {
+    const el = document.getElementById('gameContainer');
+    if (!document.fullscreenElement) {
+        el.requestFullscreen().catch(()=>{});
+    } else {
+        document.exitFullscreen().catch(()=>{});
+    }
+});
+document.addEventListener('fullscreenchange', updateFsIcon);
 
 // Auto-fire loop
 setInterval(()=>{ if(!gameRunning||!mouseDown||shopOpen)return; if(WEAPONS[player.weapon].auto)tryShoot(performance.now()); },50);
